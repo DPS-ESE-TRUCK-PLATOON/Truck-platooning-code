@@ -3,7 +3,7 @@
 #include <mutex>
 #include <netinet/in.h>
 #include <queue>
-#include <truck.cpp>
+#include "truck.cpp"
 #include <unistd.h>
 
 int init_socket(TruckInfo truck) {
@@ -34,9 +34,9 @@ int init_socket(TruckInfo truck) {
   return 1;
 };
 
-void networ_thread(std::mutex out_queue_mut, std::mutex in_queue_mut,
-                   std::queue<std::string> incoming,
-                   std::queue<std::string> outgoing, int sockfd) {
+void network_thread(std::mutex *out_queue_mut, std::mutex *in_queue_mut,
+                   std::queue<std::string> *incoming,
+                   std::queue<std::string> *outgoing, int sockfd) {
   while (true) {
     struct sockaddr_in6 cliaddr;
     socklen_t len = sizeof(cliaddr);
@@ -51,17 +51,17 @@ void networ_thread(std::mutex out_queue_mut, std::mutex in_queue_mut,
     if (n > 0) {
       buffer[n] = '\0';
       string command(buffer);
-      in_queue_mut.lock();
-      incoming.push(command);
-      in_queue_mut.unlock();
+      in_queue_mut->lock();
+      incoming->push(command);
+      in_queue_mut->unlock();
 
-      while (outgoing.empty())
+      while (outgoing->empty())
         ;
 
-      out_queue_mut.lock();
-      string response = outgoing.front();
-      outgoing.pop();
-      out_queue_mut.unlock();
+      out_queue_mut->lock();
+      string response = outgoing->front();
+      outgoing->pop();
+      out_queue_mut->unlock();
 
       // string response = truck.processCmd(command);
       send(connfd, response.c_str(), response.size(), 0);

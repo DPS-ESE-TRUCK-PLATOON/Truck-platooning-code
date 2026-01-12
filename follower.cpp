@@ -3,8 +3,9 @@
 #include <netinet/in.h>
 #include <queue>
 #include <string>
+#include <thread>
 #include <unistd.h>
-#include <network.cpp>
+#include "network.cpp"
 
 int sockfd;
 std::mutex out_queue_mut;
@@ -28,6 +29,8 @@ int main(int argc, char **argv) {
 
   TruckInfo truck(ip, port);
 
+  std::thread network(*network_thread, &out_queue_mut, &in_queue_mut, &incoming, &outgoing, sockfd);
+  
   if (init_socket(truck) == -1)
     return -1;
   while(true){
@@ -44,6 +47,6 @@ int main(int argc, char **argv) {
   out_queue_mut.unlock();
   }
   close(sockfd);
-
+  network.join();
   return 0;
 }
