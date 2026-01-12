@@ -1,3 +1,4 @@
+#include "network.cpp"
 #include <arpa/inet.h>
 #include <mutex>
 #include <netinet/in.h>
@@ -5,7 +6,6 @@
 #include <string>
 #include <thread>
 #include <unistd.h>
-#include "network.cpp"
 
 int sockfd;
 std::mutex out_queue_mut;
@@ -29,22 +29,25 @@ int main(int argc, char **argv) {
 
   TruckInfo truck(ip, port);
 
-  std::thread network(*network_thread, &out_queue_mut, &in_queue_mut, &incoming, &outgoing, sockfd);
-  
+  std::thread network(*network_thread, &out_queue_mut, &in_queue_mut, &incoming,
+                      &outgoing, sockfd);
+
   if (init_socket(truck) == -1)
     return -1;
-  while(true){
   string command;
-  if (in_queue_mut.try_lock()) {
-    if (!incoming.empty()) {
-      command = incoming.front();
+  string response;
+  while (true) {
+    
+    if (in_queue_mut.try_lock()) {
+      if (!incoming.empty()) {
+        command = incoming.front();
+      }
+      in_queue_mut.unlock();
     }
-    in_queue_mut.unlock();
-  }
-  string respone = truck.processCmd(command);
-  out_queue_mut.lock();
-  outgoing.push(respone);
-  out_queue_mut.unlock();
+    response = truck.processCmd(command);
+    out_queue_mut.lock();
+    outgoing.push(response);
+    out_queue_mut.unlock();
   }
   close(sockfd);
   network.join();

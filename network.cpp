@@ -1,9 +1,10 @@
+#include "truck.cpp"
 #include <arpa/inet.h>
 #include <iostream>
 #include <mutex>
 #include <netinet/in.h>
 #include <queue>
-#include "truck.cpp"
+#include <thread>
 #include <unistd.h>
 
 int init_socket(TruckInfo truck) {
@@ -12,7 +13,6 @@ int init_socket(TruckInfo truck) {
     std::cerr << "Socket creation failed" << std::endl;
     return -1;
   }
-
   struct sockaddr_in6 servaddr;
   servaddr.sin6_family = AF_INET6;
   servaddr.sin6_port = htons(truck.port);
@@ -30,27 +30,30 @@ int init_socket(TruckInfo truck) {
 
   std::cout << "Truck listening on [" << truck.ipv6addr << "]:" << truck.port
             << std::endl;
-
   return 1;
 };
 
 void network_thread(std::mutex *out_queue_mut, std::mutex *in_queue_mut,
-                   std::queue<std::string> *incoming,
-                   std::queue<std::string> *outgoing, int sockfd) {
+                    std::queue<std::string> *incoming,
+                    std::queue<std::string> *outgoing, int sockfd) {
+  char buffer[1024];
+  string command(buffer);
+  string response;
+  struct sockaddr_in6 cliaddr;
+  int connfd;
+  socklen_t len;
+  int n;
   while (true) {
-    struct sockaddr_in6 cliaddr;
-    socklen_t len = sizeof(cliaddr);
-    int connfd = accept(sockfd, (struct sockaddr *)&cliaddr, &len);
+    len = sizeof(cliaddr);
+    connfd = accept(sockfd, (struct sockaddr *)&cliaddr, &len);
     if (connfd < 0) {
       std::cerr << "Accept failed" << std::endl;
+      std::this_thread::sleep_for(std::chrono::seconds(1));
       continue;
     }
-
-    char buffer[1024];
-    int n = recv(connfd, buffer, sizeof(buffer) - 1, 0);
+    n = recv(connfd, buffer, sizeof(buffer) - 1, 0);
     if (n > 0) {
       buffer[n] = '\0';
-      string command(buffer);
       in_queue_mut->lock();
       incoming->push(command);
       in_queue_mut->unlock();
@@ -59,7 +62,7 @@ void network_thread(std::mutex *out_queue_mut, std::mutex *in_queue_mut,
         ;
 
       out_queue_mut->lock();
-      string response = outgoing->front();
+      response = outgoing->front();
       outgoing->pop();
       out_queue_mut->unlock();
 
