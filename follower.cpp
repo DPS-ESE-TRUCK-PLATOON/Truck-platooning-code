@@ -45,8 +45,20 @@ struct TruckInfo {
     }
 };
 
-int main() {
-    TruckInfo truck("::1", 8080);
+int main(int argc, char** argv) {
+
+    string ip;
+    int port;
+
+    for (int i = 1; i < argc; i++) {
+        string arg = argv[i];
+        if (arg == "--ip" && i + 1 < argc) {
+            ip = argv[++i];
+        } else if (arg == "--port" && i + 1 < argc) {
+            port = stoi(argv[++i]);
+        }
+    }
+    TruckInfo truck(ip, port);
     
     int sockfd = socket(AF_INET6, SOCK_STREAM, 0);
     if (sockfd < 0) {

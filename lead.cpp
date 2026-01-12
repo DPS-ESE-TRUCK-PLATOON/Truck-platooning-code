@@ -19,7 +19,12 @@ class PlatoonLeader {
     vector<TruckInfo> platoon;
 
 public:
-    void addTruck(const string& ipv6addr, int port) {
+    void addTruck(const string& ipv6addr, int port, int position) {
+        if (position < 1 || position > platoon.size() + 1) {
+            cout << "Invalid position to add truck." << endl;
+            return;
+        }
+
         auto it = find_if(platoon.begin(), platoon.end(),
                           [&ipv6addr, port](const TruckInfo& truck) {
                               return truck.ipv6addr == ipv6addr && truck.port == port;
@@ -28,9 +33,16 @@ public:
             cout << "Truck already in platoon." << endl;
             return;
         }
-        int pos = platoon.size() + 1;
-        platoon.push_back({ipv6addr, port, pos});
-        sendCommand("LINK", ipv6addr, port, pos);
+
+        for (auto& truck : platoon) {
+            if (truck.position >= position) {
+                truck.position++;
+                sendCommand("LINK", truck.ipv6addr, truck.port, truck.position);
+            }
+        }
+
+        platoon.push_back({ipv6addr, port, position});
+        sendCommand("LINK", ipv6addr, port, position);
     }
 
     void removeTruck(const string& ipv6addr, int port) {
@@ -96,21 +108,32 @@ private:
 
 };
 
-int main() {
+int main(int argc, char** argv) {
     PlatoonLeader leader;
     string line;
+    string ip;
+    int port;
+
+    for (int i = 1; i < argc; i++) {
+        string arg = argv[i];
+        if (arg == "--ip" && i + 1 < argc) {
+            ip = argv[++i];
+        } else if (arg == "--port" && i + 1 < argc) {
+            port = stoi(argv[++i]);
+        }
+    }
 
     while (true) {
-        cout << "Enter command (ADD <ipv6> <port> | REMOVE <ipv6> <port> | EXIT): ";
+        cout << "Enter command (ADD <ipv6> <port> <position> | REMOVE <ipv6> <port> | EXIT): ";
         getline(cin, line);
         stringstream ss(line);
         string command, ipv6addr;
-        int port;
+        int port, position;
 
         ss >> command;
         if (command == "ADD") {
-            ss >> ipv6addr >> port;
-            leader.addTruck(ipv6addr, port);
+            ss >> ipv6addr >> port >> position;
+            leader.addTruck(ipv6addr, port, position);
         } else if (command == "REMOVE") {
             ss >> ipv6addr >> port;
             leader.removeTruck(ipv6addr, port);
