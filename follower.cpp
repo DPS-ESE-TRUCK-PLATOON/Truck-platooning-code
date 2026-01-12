@@ -1,12 +1,16 @@
 #include <arpa/inet.h>
-#include <iostream>
+#include <mutex>
 #include <netinet/in.h>
+#include <queue>
 #include <string>
 #include <unistd.h>
 #include <network.cpp>
 
-using namespace std;
 int sockfd;
+std::mutex out_queue_mut;
+std::mutex in_queue_mut;
+std::queue<std::string> incoming;
+std::queue<std::string> outgoing;
 
 int main(int argc, char **argv) {
 
@@ -18,7 +22,7 @@ int main(int argc, char **argv) {
     if (arg == "--ip" && i + 1 < argc) {
       ip = argv[++i];
     } else if (arg == "--port" && i + 1 < argc) {
-      port = stoi(argv[++i]);
+      port = std::stoi(argv[++i]);
     }
   }
 
@@ -26,25 +30,18 @@ int main(int argc, char **argv) {
 
   if (init_socket(truck) == -1)
     return -1;
-
-  while (true) {
-    struct sockaddr_in6 cliaddr;
-    socklen_t len = sizeof(cliaddr);
-    int connfd = accept(sockfd, (struct sockaddr *)&cliaddr, &len);
-    if (connfd < 0) {
-      cerr << "Accept failed" << endl;
-      continue;
+  while(true){
+  string command;
+  if (in_queue_mut.try_lock()) {
+    if (!incoming.empty()) {
+      command = incoming.front();
     }
-
-    char buffer[1024];
-    int n = recv(connfd, buffer, sizeof(buffer) - 1, 0);
-    if (n > 0) {
-      buffer[n] = '\0';
-      string command(buffer);
-      string response = truck.processCmd(command);
-      send(connfd, response.c_str(), response.size(), 0);
-    }
-    close(connfd);
+    in_queue_mut.unlock();
+  }
+  string respone = truck.processCmd(command);
+  out_queue_mut.lock();
+  outgoing.push(respone);
+  out_queue_mut.unlock();
   }
   close(sockfd);
 
