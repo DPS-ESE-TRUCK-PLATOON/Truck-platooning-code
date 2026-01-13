@@ -40,7 +40,7 @@ void network_thread(std::mutex *out_queue_mut, std::mutex *in_queue_mut,
                     std::queue<std::string> *incoming,
                     std::queue<std::string> *outgoing, int sockfd) {
   char buffer[1024];
-  string command(buffer);
+  string command;
   string response;
   struct sockaddr_in6 cliaddr;
   int connfd;
@@ -54,15 +54,12 @@ void network_thread(std::mutex *out_queue_mut, std::mutex *in_queue_mut,
     }
     if (connfd < 0) {
       std::cerr << "Accept failed" << std::endl;
-      std::this_thread::sleep_for(std::chrono::seconds(1));
       continue;
     }
     n = recv(connfd, buffer, sizeof(buffer) - 1, 0);
-    std::this_thread::sleep_for(std::chrono::seconds(1));
-    //std::cout << "recieved " << n << std::endl;
     if (n > 0) {
-      std::cout << "recieved something" << std::endl;
       buffer[n] = '\0';
+      command = buffer;
       in_queue_mut->lock();
       incoming->push(command);
       in_queue_mut->unlock();
@@ -74,8 +71,6 @@ void network_thread(std::mutex *out_queue_mut, std::mutex *in_queue_mut,
       response = outgoing->front();
       outgoing->pop();
       out_queue_mut->unlock();
-
-      // string response = truck.processCmd(command);
       send(connfd, response.c_str(), response.size(), 0);
     }
     close(connfd);
