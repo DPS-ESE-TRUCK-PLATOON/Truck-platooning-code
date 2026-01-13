@@ -35,26 +35,21 @@ int main(int argc, char **argv) {
   string command;
   string response;
   while (true) {
-    if (truck.state == State::Idle) {
-      if (in_queue_mut.try_lock()) {
-        if (!incoming.empty()) {
-          command = incoming.front();
-          response = truck.processCmd(command);
-          in_queue_mut.unlock();
-          out_queue_mut.lock();
-          outgoing.push(response);
-          out_queue_mut.unlock();
-        } else {
-          in_queue_mut.unlock();
-        }
+
+    if (in_queue_mut.try_lock()) {
+      if (!incoming.empty()) {
+        command = incoming.front();
+        response = truck.processCmd(command);
+        in_queue_mut.unlock();
+        out_queue_mut.lock();
+        outgoing.push(response);
+        out_queue_mut.unlock();
+      } else {
+        in_queue_mut.unlock();
       }
     }
-    while (truck.state == State::Linked) {
-      
-    }
-
-    close(sockfd);
-    network.join();
-    return 0;
   }
+  close(sockfd);
+  network.join();
+  return 0;
 }

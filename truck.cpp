@@ -3,12 +3,11 @@
 
 using std::string;
 
-enum State { Idle, Linked, Delinked };
 struct TruckInfo {
   string ipv6addr;
   int port;
   int position;
-  State state;
+  enum State { Idle, Linked, Delinked } state;
   string cmd;
   int pos;
 
