@@ -17,11 +17,12 @@ struct TruckInfo {
   string processCmd(const string &command) {
     std::istringstream ss(command);
 
-    if (!(ss >> cmd >> pos)) {
+    /*if (!(ss >> cmd >> pos)) {
       return "ERROR Invalid command format";
-    }
-
+    }*/
+    ss >> cmd;
     if (cmd == "LINK") {
+      ss >> pos;
       if (state == Linked) {
         return "ERROR Already linked";
       }
