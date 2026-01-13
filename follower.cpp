@@ -7,7 +7,6 @@
 #include <thread>
 #include <unistd.h>
 
-int sockfd;
 std::mutex out_queue_mut;
 std::mutex in_queue_mut;
 std::queue<std::string> incoming;
@@ -37,17 +36,19 @@ int main(int argc, char **argv) {
   string command;
   string response;
   while (true) {
-    
+
     if (in_queue_mut.try_lock()) {
       if (!incoming.empty()) {
         command = incoming.front();
+        response = truck.processCmd(command);
+        in_queue_mut.unlock();
+        out_queue_mut.lock();
+        outgoing.push(response);
+        out_queue_mut.unlock();
+      } else {
+        in_queue_mut.unlock();
       }
-      in_queue_mut.unlock();
     }
-    response = truck.processCmd(command);
-    out_queue_mut.lock();
-    outgoing.push(response);
-    out_queue_mut.unlock();
   }
   close(sockfd);
   network.join();

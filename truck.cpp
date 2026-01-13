@@ -8,14 +8,14 @@ struct TruckInfo {
   int port;
   int position;
   enum State { Idle, Linked, Delinked } state;
+  string cmd;
+  int pos;
 
   TruckInfo(const string &addr, int p)
       : ipv6addr(addr), port(p), position(-1), state(Idle) {}
 
   string processCmd(const string &command) {
     std::istringstream ss(command);
-    string cmd;
-    int pos;
 
     if (!(ss >> cmd >> pos)) {
       return "ERROR Invalid command format";
