@@ -1,11 +1,9 @@
 #include "truck.cpp"
 #include <arpa/inet.h>
-#include <chrono>
 #include <iostream>
 #include <mutex>
 #include <netinet/in.h>
 #include <queue>
-#include <thread>
 #include <unistd.h>
 
 int sockfd;
