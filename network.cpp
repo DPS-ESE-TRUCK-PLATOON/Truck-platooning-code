@@ -44,7 +44,7 @@ void network_thread(std::mutex *out_queue_mut, std::mutex *in_queue_mut,
   string response;
   struct sockaddr_in6 cliaddr;
   int connfd;
-  socklen_t len;
+  socklen_t len = sizeof(cliaddr);
   int n;
   connfd = accept(sockfd, (struct sockaddr *)&cliaddr, &len);
   while (true) {

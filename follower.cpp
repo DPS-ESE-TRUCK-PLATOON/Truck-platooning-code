@@ -28,11 +28,10 @@ int main(int argc, char **argv) {
 
   TruckInfo truck(ip, port);
 
-  std::thread network(*network_thread, &out_queue_mut, &in_queue_mut, &incoming,
-                      &outgoing, sockfd);
-
   if (init_socket(truck) == -1)
     return -1;
+  std::thread network(*network_thread, &out_queue_mut, &in_queue_mut, &incoming,
+                      &outgoing, sockfd);
   string command;
   string response;
   while (true) {
