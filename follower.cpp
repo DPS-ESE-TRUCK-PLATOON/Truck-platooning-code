@@ -1,108 +1,60 @@
-#include <iostream>
-#include <string>
+#include "network.cpp"
 #include <arpa/inet.h>
-#include <unistd.h>
+#include <mutex>
 #include <netinet/in.h>
-#include <sstream>
+#include <queue>
+#include <string>
+#include <thread>
+#include <unistd.h>
 
-using namespace std;
+std::mutex out_queue_mut;
+std::mutex in_queue_mut;
+std::queue<std::string> incoming;
+std::queue<std::string> outgoing;
 
-struct TruckInfo {
-    string ipv6addr;
-    int port;
-    int position;
-    enum State {Idle, Linked, Delinked} state;
+int main(int argc, char **argv) {
 
-    TruckInfo(const string& addr, int p)
-        : ipv6addr(addr), port(p), position(-1), state(Idle) {}
+  string ip;
+  int port;
 
-    string processCmd(const string& command) {
-        istringstream ss(command);
-        string cmd;
-        int pos;
+  for (int i = 1; i < argc; i++) {
+    string arg = argv[i];
+    if (arg == "--ip" && i + 1 < argc) {
+      ip = argv[++i];
+    } else if (arg == "--port" && i + 1 < argc) {
+      port = std::stoi(argv[++i]);
+    }
+  }
 
-        if (!(ss >> cmd >> pos)) {
-            return "ERROR Invalid command format";
-        }
+  TruckInfo truck(ip, port);
 
-        if (cmd == "LINK") {
-            if (state == Linked) {
-                return "ERROR Already linked";
-            }
-            state = Linked;
-            position = pos;
-            return "ACK LINK " + to_string(position);
-        } else if (cmd == "DELINK") {
-            if (state != Linked) {
-                return "ERROR Already delinked";
-            }
-            state = Delinked;
-            position = -1;
-            return "ACK DELINK";
+  if (init_socket(truck) == -1)
+    return -1;
+  std::thread network(*network_thread, &out_queue_mut, &in_queue_mut, &incoming,
+                      &outgoing, sockfd);
+  string command;
+  string response;
+  while (true) {
+    if (truck.state == State::Idle) {
+      if (in_queue_mut.try_lock()) {
+        if (!incoming.empty()) {
+          command = incoming.front();
+          response = truck.processCmd(command);
+          in_queue_mut.unlock();
+          out_queue_mut.lock();
+          outgoing.push(response);
+          out_queue_mut.unlock();
         } else {
-            return "ERROR Unknown command";
+          in_queue_mut.unlock();
         }
+      }
     }
-};
-
-int main(int argc, char** argv) {
-
-    string ip;
-    int port;
-
-    for (int i = 1; i < argc; i++) {
-        string arg = argv[i];
-        if (arg == "--ip" && i + 1 < argc) {
-            ip = argv[++i];
-        } else if (arg == "--port" && i + 1 < argc) {
-            port = stoi(argv[++i]);
-        }
-    }
-    TruckInfo truck(ip, port);
-    
-    int sockfd = socket(AF_INET6, SOCK_STREAM, 0);
-    if (sockfd < 0) {
-        cerr << "Socket creation failed" << endl;
-        return -1;
+    while (truck.state == State::Linked) {
+      
     }
 
-    struct sockaddr_in6 servaddr;
-    servaddr.sin6_family = AF_INET6;
-    servaddr.sin6_port = htons(truck.port);
-    servaddr.sin6_addr = in6addr_any;
-
-    if (bind(sockfd, (struct sockaddr*)&servaddr, sizeof(servaddr)) < 0) {
-        cerr << "Bind failed" << endl;
-        return -1;
-    }
-
-    if (listen(sockfd, 5) < 0) {
-        cerr << "Listen failed" << endl;
-        return -1;
-    }
-
-    cout << "Truck listening on [" << truck.ipv6addr << "]:" << truck.port << endl;
-
-    while (true) {
-        struct sockaddr_in6 cliaddr;
-        socklen_t len = sizeof(cliaddr);
-        int connfd = accept(sockfd, (struct sockaddr*)&cliaddr, &len);
-        if (connfd < 0) {
-            cerr << "Accept failed" << endl;
-            continue;
-        }
-
-        char buffer[1024];
-        int n = recv(connfd, buffer, sizeof(buffer)-1, 0);
-        if (n > 0) {
-            buffer[n] = '\0';
-            string command(buffer);
-            string response = truck.processCmd(command);
-            send(connfd, response.c_str(), response.size(), 0);
-        }
-        close(connfd);
-    }
     close(sockfd);
-
+    network.join();
     return 0;
+  }
 }
