@@ -32,13 +32,10 @@ public:
         if (it != platoon.end()) {
             cout << "Truck already in platoon." << endl;
             return;
-        }
-
-        for (auto& truck : platoon) {
-            if (truck.position >= position) {
-                truck.position++;
-                sendCommand("LINK", truck.ipv6addr, truck.port, truck.position);
-            }
+        }  
+        if ( platoon.size() >= position ) {
+            cout << "Position already occupied. Next available position is " << platoon.size() + 1 << endl;
+            return;
         }
 
         platoon.push_back({ipv6addr, port, position});
@@ -60,9 +57,22 @@ public:
         }
 
         int removedPosition = it->position;
-        sendCommand("DELINK", ipv6addr, port, removedPosition);
+        //sendCommand("DELINK", it->ipv6addr, it->port, removedPosition);
+        it -> position = -1;
+        sendCommand("DELINK", it->ipv6addr, it->port, removedPosition);
         platoon.erase(it);
-        //cout << "removed" << endl;
+        for (auto& truck : platoon) {
+            if (truck.position > removedPosition) {
+                truck.position--;
+            } else {
+                continue;
+            }
+        }
+        for (const auto& truck : platoon) {
+            cout << "Truck: " << truck.ipv6addr << ":" << truck.port << " Position: " << truck.position << endl;
+        }
+        
+        
     }
 
 private: 
@@ -89,20 +99,12 @@ private:
         }
 
         stringstream ss;
-        if (command == "DELINK") {
-            ss << command;
-        } else { 
-            ss << command << " " << position;
-        }
-        //ss << command << " " << position;
+        ss << command << " " << position;
         string msg = ss.str();
-        //cout << "reached here" << endl;
         send(sockfd, msg.c_str(), msg.size(), 0);
-        cout << "but here" << endl;
 
         char buffer[1024];
         int n = recv(sockfd, buffer, sizeof(buffer)-1, 0);
-        cout << "reached here" << endl;
         if (n > 0) {
             buffer[n] = '\0';
             cout << "Response from " << ipv6addr << ":" << port << " - " << buffer << endl;
