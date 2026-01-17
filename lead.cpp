@@ -57,8 +57,6 @@ public:
         }
 
         int removedPosition = it->position;
-        //sendCommand("DELINK", it->ipv6addr, it->port, removedPosition);
-        it -> position = -1;
         sendCommand("DELINK", it->ipv6addr, it->port, removedPosition);
         platoon.erase(it);
         for (auto& truck : platoon) {

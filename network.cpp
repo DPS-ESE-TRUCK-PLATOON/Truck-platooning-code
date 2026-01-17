@@ -44,12 +44,12 @@ void network_thread(std::mutex *out_queue_mut, std::mutex *in_queue_mut,
   int connfd;
   socklen_t len = sizeof(cliaddr);
   int n;
-  connfd = accept(sockfd, (struct sockaddr *)&cliaddr, &len);
+  //connfd = accept(sockfd, (struct sockaddr *)&cliaddr, &len);
   while (true) {
     len = sizeof(cliaddr);
-    if (connfd < 0) {
-      connfd = accept(sockfd, (struct sockaddr *)&cliaddr, &len);
-    }
+    //if (connfd < 0) {
+    connfd = accept(sockfd, (struct sockaddr *)&cliaddr, &len);
+    //}
     if (connfd < 0) {
       std::cerr << "Accept failed" << std::endl;
       continue;

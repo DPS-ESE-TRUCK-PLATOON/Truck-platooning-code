@@ -1,5 +1,6 @@
 #include <sstream>
 #include <string>
+#include <iostream>
 
 using std::string;
 
@@ -18,6 +19,7 @@ struct TruckInfo {
     std::istringstream ss(command);
 
     ss >> cmd;
+    std::cout << cmd << std::endl;
     if (cmd == "LINK") {
       ss >> pos;
       if (state == Linked) {
