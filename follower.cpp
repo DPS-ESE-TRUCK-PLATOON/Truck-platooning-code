@@ -36,8 +36,8 @@ int main(int argc, char **argv) {
   string response;
   while (true) {
 
-    if (in_queue_mut.try_lock()) {
-      if (!incoming.empty()) {
+    if (!incoming.empty()) {
+      if (in_queue_mut.try_lock()) {
         command = incoming.front();
         response = truck.processCmd(command);
         incoming.pop();
@@ -45,8 +45,6 @@ int main(int argc, char **argv) {
         out_queue_mut.lock();
         outgoing.push(response);
         out_queue_mut.unlock();
-      } else {
-        in_queue_mut.unlock();
       }
     }
   }
