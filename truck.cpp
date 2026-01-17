@@ -1,5 +1,6 @@
 #include <sstream>
 #include <string>
+#include <iostream>
 
 using std::string;
 
@@ -17,11 +18,10 @@ struct TruckInfo {
   string processCmd(const string &command) {
     std::istringstream ss(command);
 
-    if (!(ss >> cmd >> pos)) {
-      return "ERROR Invalid command format";
-    }
-
+    ss >> cmd;
+    std::cout << cmd << std::endl;
     if (cmd == "LINK") {
+      ss >> pos;
       if (state == Linked) {
         return "ERROR Already linked";
       }

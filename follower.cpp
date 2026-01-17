@@ -40,6 +40,7 @@ int main(int argc, char **argv) {
       if (!incoming.empty()) {
         command = incoming.front();
         response = truck.processCmd(command);
+        incoming.pop();
         in_queue_mut.unlock();
         out_queue_mut.lock();
         outgoing.push(response);

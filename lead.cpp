@@ -32,17 +32,17 @@ public:
         if (it != platoon.end()) {
             cout << "Truck already in platoon." << endl;
             return;
-        }
-
-        for (auto& truck : platoon) {
-            if (truck.position >= position) {
-                truck.position++;
-                sendCommand("LINK", truck.ipv6addr, truck.port, truck.position);
-            }
+        }  
+        if ( platoon.size() >= position ) {
+            cout << "Position already occupied. Next available position is " << platoon.size() + 1 << endl;
+            return;
         }
 
         platoon.push_back({ipv6addr, port, position});
         sendCommand("LINK", ipv6addr, port, position);
+        for (const auto& truck : platoon) {
+            cout << "Truck: " << truck.ipv6addr << ":" << truck.port << " Position: " << truck.position << endl;
+        }
     }
 
     void removeTruck(const string& ipv6addr, int port) {
@@ -50,19 +50,27 @@ public:
                           [&ipv6addr, port](const TruckInfo& truck) {
                               return truck.ipv6addr == ipv6addr && truck.port == port;
                           });
+
         if (it == platoon.end()) {
             cout << "Truck not found in platoon." << endl;
             return;
         }
-        int removedPos = it->position;
-        sendCommand("DELINK", it->ipv6addr, it->port, it->position);
+
+        int removedPosition = it->position;
+        sendCommand("DELINK", it->ipv6addr, it->port, removedPosition);
         platoon.erase(it);
         for (auto& truck : platoon) {
-            if (truck.position > removedPos) {
+            if (truck.position > removedPosition) {
                 truck.position--;
-                sendCommand("LINK", truck.ipv6addr, truck.port, truck.position);
+            } else {
+                continue;
             }
         }
+        for (const auto& truck : platoon) {
+            cout << "Truck: " << truck.ipv6addr << ":" << truck.port << " Position: " << truck.position << endl;
+        }
+        
+        
     }
 
 private: 
@@ -113,6 +121,7 @@ int main(int argc, char** argv) {
     string line;
     string ip;
     int port;
+    int leadposition = 0;
 
     for (int i = 1; i < argc; i++) {
         string arg = argv[i];
@@ -134,6 +143,7 @@ int main(int argc, char** argv) {
         if (command == "ADD") {
             ss >> ipv6addr >> port >> position;
             leader.addTruck(ipv6addr, port, position);
+            
         } else if (command == "REMOVE") {
             ss >> ipv6addr >> port;
             leader.removeTruck(ipv6addr, port);
@@ -142,6 +152,7 @@ int main(int argc, char** argv) {
         } else {
             cout << "Invalid command." << endl;
         }
+
     }
 
 /*    leader.addTruck("2001:db8::1", 8081);

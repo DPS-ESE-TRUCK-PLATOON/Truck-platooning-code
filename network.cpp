@@ -44,14 +44,20 @@ void network_thread(std::mutex *out_queue_mut, std::mutex *in_queue_mut,
   int connfd;
   socklen_t len = sizeof(cliaddr);
   int n;
-  connfd = accept(sockfd, (struct sockaddr *)&cliaddr, &len);
+  //connfd = accept(sockfd, (struct sockaddr *)&cliaddr, &len);
   while (true) {
     // TODO: add things for the other socket to the server not just the truck
     len = sizeof(cliaddr);
+<<<<<<< HEAD
     // if there is no connection, create it
     if (connfd < 0) {
       connfd = accept(sockfd, (struct sockaddr *)&cliaddr, &len);
     }
+=======
+    //if (connfd < 0) {
+    connfd = accept(sockfd, (struct sockaddr *)&cliaddr, &len);
+    //}
+>>>>>>> 842a81ed2876fb125cb548080f7c6b1b3d21f27a
     if (connfd < 0) {
       // TODO: add something here for connection failiure
       std::cerr << "Accept failed" << std::endl;
