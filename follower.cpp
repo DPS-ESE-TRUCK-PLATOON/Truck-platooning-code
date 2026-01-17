@@ -35,13 +35,22 @@ int main(int argc, char **argv) {
   string command;
   string response;
   while (true) {
-
+    // this is only safe because the channel is single consumer (this thread)
+    // so we cannot learn that it is not empty, then it becomes empty before we
+    // lock
     if (!incoming.empty()) {
       if (in_queue_mut.try_lock()) {
+        // TODO: break out into function to use simply, returns string
         command = incoming.front();
-        response = truck.processCmd(command);
         incoming.pop();
         in_queue_mut.unlock();
+
+        // TODO: add big switch statement for possible packets and handle them
+        // appropriately
+        response = truck.processCmd(command);
+
+        // TODO: break out to function so use is easier from other places, takes
+        // string
         out_queue_mut.lock();
         outgoing.push(response);
         out_queue_mut.unlock();
