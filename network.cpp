@@ -46,11 +46,14 @@ void network_thread(std::mutex *out_queue_mut, std::mutex *in_queue_mut,
   int n;
   connfd = accept(sockfd, (struct sockaddr *)&cliaddr, &len);
   while (true) {
+    // TODO: add things for the other socket to the server not just the truck
     len = sizeof(cliaddr);
+    // if there is no connection, create it
     if (connfd < 0) {
       connfd = accept(sockfd, (struct sockaddr *)&cliaddr, &len);
     }
     if (connfd < 0) {
+      // TODO: add something here for connection failiure
       std::cerr << "Accept failed" << std::endl;
       continue;
     }
@@ -61,16 +64,16 @@ void network_thread(std::mutex *out_queue_mut, std::mutex *in_queue_mut,
       in_queue_mut->lock();
       incoming->push(command);
       in_queue_mut->unlock();
-
-      while (outgoing->empty())
-        ;
-
+    }
+    // if there is a response to be sent, send it
+    if (!outgoing->empty()) {
       out_queue_mut->lock();
       response = outgoing->front();
       outgoing->pop();
       out_queue_mut->unlock();
       send(connfd, response.c_str(), response.size(), 0);
     }
-    close(connfd);
+    // possibly needs to be added somewhere?
+    //close(connfd);
   }
 }
