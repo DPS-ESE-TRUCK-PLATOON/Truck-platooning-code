@@ -8,6 +8,27 @@
 
 int sockfd;
 
+std::string read_item_from_q(std::mutex *in_lock,
+                             std::queue<std::string> *in_q) {
+  // this is only safe because the channel is single consumer (this thread)
+  // so we cannot learn that it is not empty, then it becomes empty before we
+  // lock it
+  string command = "";
+  if (!in_q->empty()) {
+    in_lock->lock();
+    command = in_q->front();
+    in_q->pop();
+    in_lock->unlock();
+  }
+  return command;
+}
+
+void out_q_push(std::mutex *out_lock, std::queue<std::string> *out_q, std::string item) {
+  out_lock->lock();
+  out_q->push(item);
+  out_lock->unlock();
+}
+
 int init_socket(TruckInfo truck) {
   sockfd = socket(AF_INET6, SOCK_STREAM, 0);
   if (sockfd < 0) {
@@ -74,6 +95,6 @@ void network_thread(std::mutex *out_queue_mut, std::mutex *in_queue_mut,
       send(connfd, response.c_str(), response.size(), 0);
     }
     // possibly needs to be added somewhere?
-    //close(connfd);
+    // close(connfd);
   }
 }
