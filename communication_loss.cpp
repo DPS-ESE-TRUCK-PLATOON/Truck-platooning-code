@@ -21,7 +21,6 @@ TruckInfo myTruck;
 bool keepRunning = true;
 SOCKET trucksocket[4] = {0, 0, 0, 0}; 
 
-// --- 3. THE MONITOR ---
 void Communication_Monitor() {
 
     cout << "Communication state Monitoring Started.\n" << endl;
