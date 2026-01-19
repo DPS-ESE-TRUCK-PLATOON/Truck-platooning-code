@@ -1,21 +1,19 @@
-#include <iostream>
 #include <sstream>
 #include <string>
+#include <iostream>
 
 using std::string;
-
-enum State { Linked, Delinked } state;
 
 struct TruckInfo {
   string ipv6addr;
   int port;
   int position;
-  State state;
+  enum State { Idle, Linked, Delinked } state;
   string cmd;
   int pos;
 
   TruckInfo(const string &addr, int p)
-      : ipv6addr(addr), port(p), position(-1), state(Delinked) {}
+      : ipv6addr(addr), port(p), position(-1), state(Idle) {}
 
   string processCmd(const string &command) {
     std::istringstream ss(command);
