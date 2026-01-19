@@ -1,8 +1,11 @@
 #include "truck.cpp"
 #include <arpa/inet.h>
+#include <errno.h>
+#include <fcntl.h>
 #include <iostream>
 #include <mutex>
 #include <netinet/in.h>
+#include <poll.h>
 #include <queue>
 #include <unistd.h>
 
@@ -23,7 +26,8 @@ std::string read_item_from_q(std::mutex *in_lock,
   }
   return command;
 }
-void out_q_push(std::mutex *out_lock, std::queue<std::string> *out_q, std::string item) {
+void out_q_push(std::mutex *out_lock, std::queue<std::string> *out_q,
+                std::string item) {
   out_lock->lock();
   out_q->push(item);
   out_lock->unlock();
@@ -39,6 +43,8 @@ int init_socket(TruckInfo truck) {
   servaddr.sin6_family = AF_INET6;
   servaddr.sin6_port = htons(truck.port);
   servaddr.sin6_addr = in6addr_any;
+  int flags = fcntl(sockfd, F_GETFL, 0);
+  fcntl(sockfd, F_SETFL, flags | O_NONBLOCK);
 
   if (bind(sockfd, (struct sockaddr *)&servaddr, sizeof(servaddr)) < 0) {
     std::cerr << "Bind failed" << std::endl;
@@ -62,39 +68,86 @@ void network_thread(std::mutex *out_queue_mut, std::mutex *in_queue_mut,
   string command;
   string response;
   struct sockaddr_in6 cliaddr;
-  int connfd;
   socklen_t len = sizeof(cliaddr);
   int n;
-  connfd = accept(sockfd, (struct sockaddr *)&cliaddr, &len);
+  int connfd = -1;
+  pollfd fds[2];
   while (true) {
-    // TODO: add things for the other socket to the server not just the truck
-    len = sizeof(cliaddr);
-    // if there is no connection, create it
-    if (connfd < 0) {
-      connfd = accept(sockfd, (struct sockaddr *)&cliaddr, &len);
+    int nfds = 0;
+    // Listening socket
+    fds[nfds].fd = sockfd;
+    fds[nfds].events = POLLIN;
+    nfds++;
+    // Client socket (if connected)
+    if (connfd >= 0) {
+      fds[nfds].fd = connfd;
+      fds[nfds].events = POLLIN;
+      // enable POLLOUT only if we have data to send
+      //if (!outgoing->empty())
+        fds[nfds].events |= POLLOUT;
+      nfds++;
     }
-    if (connfd < 0) {
-      // TODO: add something here for connection failiure
-      std::cerr << "Accept failed" << std::endl;
+    //std::cout << "blocking till something" << std::endl;
+    int ret = poll(fds, nfds, -1); // block until something happens
+    //std::cout << "something" << std::endl;
+    if (ret < 0) {
+      perror("poll");
       continue;
     }
-    n = recv(connfd, buffer, sizeof(buffer) - 1, 0);
-    if (n > 0) {
-      buffer[n] = '\0';
-      command = buffer;
-      in_queue_mut->lock();
-      incoming->push(command);
-      in_queue_mut->unlock();
+
+    int idx = 0;
+
+    // New incoming connection
+    if (fds[idx].revents & POLLIN) {
+      sockaddr_in6 cliaddr;
+      socklen_t len = sizeof(cliaddr);
+
+      int newfd = accept(sockfd, (sockaddr *)&cliaddr, &len);
+      if (newfd >= 0) {
+        fcntl(newfd, F_SETFL, O_NONBLOCK);
+        connfd = newfd;
+        //std::cout << "Client connected\n";
+      }
     }
-    // if there is a response to be sent, send it
-    if (!outgoing->empty()) {
-      out_queue_mut->lock();
-      response = outgoing->front();
-      outgoing->pop();
-      out_queue_mut->unlock();
-      send(connfd, response.c_str(), response.size(), 0);
+    idx++;
+
+    // Client socket events
+    if (connfd >= 0) {
+      // Incoming data
+      if (fds[idx].revents & POLLIN) {
+        ssize_t n = recv(connfd, buffer, sizeof(buffer) - 1, 0);
+        if (n > 0) {
+          buffer[n] = '\0';
+
+          std::lock_guard<std::mutex> lock(*in_queue_mut);
+          incoming->push(buffer);
+        } else if (n == 0) {
+          //std::cout << "Client disconnected\n";
+          close(connfd);
+          connfd = -1;
+        } else if (errno != EAGAIN && errno != EWOULDBLOCK) {
+          perror("recv");
+        }
+      }
+
+      // Outgoing data
+      if (fds[idx].revents & POLLOUT) {
+        std::string response;
+        {
+          std::lock_guard<std::mutex> lock(*out_queue_mut);
+          if (!outgoing->empty()) {
+            response = outgoing->front();
+            outgoing->pop();
+          }
+        }
+
+        if (!response.empty()) {
+          ssize_t sent = send(connfd, response.c_str(), response.size(), 0);
+          if (sent < 0 && errno != EAGAIN) {
+            perror("send");
+          }
+        }
+      }
     }
-    // possibly needs to be added somewhere?
-    // close(connfd);
   }
 }

@@ -35,14 +35,14 @@ int main(int argc, char **argv) {
   string command;
   string response;
   while (true) {
-    switch (truck.state) {
-    case Delinked:
+    // switch (truck.state) {
+    // case Delinked:
       
-      break;
-    case Linked:
+    //   break;
+    // case Linked:
       
-      break;
-    }
+    //   break;
+    // }
 
     command = read_item_from_q(&in_queue_mut, &incoming);
 
@@ -50,6 +50,7 @@ int main(int argc, char **argv) {
     // appropriately state machine of state machiens goes her
     if (command != "") {
       response = truck.processCmd(command);
+      //std::cout << "response is " << response << std::endl;
       out_q_push(&out_queue_mut, &outgoing, response);
     }
   }
