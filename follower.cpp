@@ -35,12 +35,19 @@ int main(int argc, char **argv) {
   string command;
   string response;
   while (true) {
+    switch (truck.state) {
+    case Delinked:
+      
+      break;
+    case Linked:
+      
+      break;
+    }
 
     command = read_item_from_q(&in_queue_mut, &incoming);
 
     // TODO: add big switch statement for possible packets and handle them
-    // appropriately
-    // state machine of state machiens goes her
+    // appropriately state machine of state machiens goes her
     if (command != "") {
       response = truck.processCmd(command);
       out_q_push(&out_queue_mut, &outgoing, response);
