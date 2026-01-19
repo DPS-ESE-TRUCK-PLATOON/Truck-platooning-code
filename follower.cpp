@@ -40,6 +40,7 @@ int main(int argc, char **argv) {
 
     // TODO: add big switch statement for possible packets and handle them
     // appropriately
+    // state machine of state machiens goes her
     if (command != "") {
       response = truck.processCmd(command);
       out_q_push(&out_queue_mut, &outgoing, response);
