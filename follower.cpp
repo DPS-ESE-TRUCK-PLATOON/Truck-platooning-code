@@ -30,7 +30,7 @@ int main(int argc, char **argv) {
     }
   }
 
-  TruckInfo truck(ip, port);
+  Truck truck(ip, port);
 
   if (init_socket(truck) == -1)
     return -1;
@@ -55,7 +55,7 @@ int main(int argc, char **argv) {
         // this contains the info from the pos packet
         posPacket com =
             processPacket(read_item_from_q(&in_queue_mut, &incoming));
-        truck.location_of_lead.emplace_back(com.timeStamp, com.pos, com.speed,
+        truck.locationOfTruckAhead.emplace_back(com.timeStamp, com.pos, com.speed,
                                             com.heading);
         truck.platoonStandard(currentTime);
         break;

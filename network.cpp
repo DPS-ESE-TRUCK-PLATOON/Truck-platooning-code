@@ -34,7 +34,7 @@ void out_q_push(std::mutex *out_lock, std::queue<std::string> *out_q,
   out_lock->unlock();
 }
 
-int init_socket(TruckInfo truck) {
+int init_socket(Truck truck) {
   sockfd = socket(AF_INET6, SOCK_STREAM, 0);
   if (sockfd < 0) {
     std::cerr << "Socket creation failed" << std::endl;
