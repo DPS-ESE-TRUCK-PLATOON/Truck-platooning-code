@@ -17,8 +17,8 @@ public:
     return with_payload(MessageType::ADD, &p, sizeof(p));
   }
 
-  static std::vector<uint8_t> remove() {
-    return header_only(MessageType::REMOVE);
+  static std::vector<uint8_t> remove(const RemovePayload &p) {
+    return with_payload(MessageType::REMOVE, &p, sizeof(p));
   }
 
   // ACKs

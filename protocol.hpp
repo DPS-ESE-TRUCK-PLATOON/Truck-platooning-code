@@ -56,16 +56,18 @@ struct AckAddPayload {
 };
 #pragma pack(pop)
 
-// // REMOVE
-// #pragma pack(push, 1)
-// struct RemovePayload {
-//   uint32_t truck_id;
-// };
-// #pragma pack(pop)
+// REMOVE
+#pragma pack(push, 1)
+struct RemovePayload {
+  uint32_t truck_id;
+};
+#pragma pack(pop)
 
 // INFO (authoritative topology)
 #pragma pack(push, 1)
 struct InfoPayload {
+  uint32_t self_id;
+
   uint32_t front_id;
   uint32_t behind_id;
 

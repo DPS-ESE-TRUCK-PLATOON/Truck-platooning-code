@@ -41,10 +41,10 @@ public:
     return *reinterpret_cast<const AckAddPayload *>(m.payload.data());
   }
 
-  // static const RemovePayload &as_remove(const DecodedMessage &m) {
-  //   check(m, MessageType::REMOVE, sizeof(RemovePayload));
-  //   return *reinterpret_cast<const RemovePayload *>(m.payload.data());
-  // }
+  static const RemovePayload &as_remove(const DecodedMessage &m) {
+    check(m, MessageType::REMOVE, sizeof(RemovePayload));
+    return *reinterpret_cast<const RemovePayload *>(m.payload.data());
+  }
 
   static const InfoPayload &as_info(const DecodedMessage &m) {
     check(m, MessageType::INFO, sizeof(InfoPayload));
