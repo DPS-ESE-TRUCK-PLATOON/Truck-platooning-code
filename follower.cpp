@@ -1,49 +1,12 @@
-#include "decoder.hpp"
 #include "network.cpp"
 #include "packet-proc.cpp"
 #include <arpa/inet.h>
-#include <cfenv>
 #include <mutex>
 #include <netinet/in.h>
 #include <queue>
 #include <string>
 #include <thread>
 #include <unistd.h>
-
-
-std::mutex lead_out_mut, lead_in_mut, behind_out_mut, front_in_mut;
-std::queue<std::vector<uint8_t>> lead_out_queue, behind_out_queue;
-std::queue<proto::DecodedMessage> lead_in_queue, front_in_queue;
-
-void lead_out(std::vector<uint8_t> item) {
-  std::lock_guard<std::mutex> lock(lead_out_mut);
-  lead_out_queue.push(item);
-}
-
-void behind_out(std::vector<uint8_t> item) {
-  std::lock_guard<std::mutex> lock(behind_out_mut);
-  behind_out_queue.push(item);
-}
-
-bool lead_in(proto::DecodedMessage &out) {
-  // returns true if there is input returned on the pointer
-  std::lock_guard<std::mutex> lock(lead_in_mut);
-  if (lead_in_queue.empty())
-    return false;
-  out = std::move(lead_in_queue.front());
-  lead_in_queue.pop();
-  return true;
-}
-
-bool front_in(proto::DecodedMessage &out) {
-  // returns true if there is input that is returned on the pointer
-  std::lock_guard<std::mutex> lock(front_in_mut);
-  if (front_in_queue.empty())
-    return false;
-  out = std::move(front_in_queue.front());
-  front_in_queue.pop();
-  return true;
-}
 
 std::mutex out_queue_mut;
 std::mutex in_queue_mut;
@@ -92,8 +55,8 @@ int main(int argc, char **argv) {
         // this contains the info from the pos packet
         posPacket com =
             processPacket(read_item_from_q(&in_queue_mut, &incoming));
-        truck.locationOfTruckAhead.emplace_back(com.timeStamp, com.pos, com.speed,
-                                            com.heading);
+        // truck.locationOfTruckAhead.emplace_back(com.timeStamp, com.pos, com.speed,
+        //                                     com.heading);
         truck.platoonStandard(1/tickrate);
         break;
       }
