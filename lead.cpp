@@ -23,11 +23,7 @@ class PlatoonLeader {
     bool godotConnected = false;
 
 public:
-    void addTruck(const string& ipv6addr, int port, int position) {
-        if (position < 1 || position > platoon.size() + 1) {
-            cout << "Invalid position to add truck." << endl;
-            return;
-        }
+    void addTruck(const string& ipv6addr, int port) {
 
         auto it = find_if(platoon.begin(), platoon.end(),
                           [&ipv6addr, port](const TruckInfo& truck) {
@@ -37,10 +33,8 @@ public:
             cout << "Truck already in platoon." << endl;
             return;
         }  
-        if ( platoon.size() >= position ) {
-            cout << "Position already occupied. Next available position is " << platoon.size() + 1 << endl;
-            return;
-        }
+
+        int position = platoon.size() + 1;
 
         platoon.push_back({ipv6addr, port, position});
         sendCommand("LINK", ipv6addr, port, position);
@@ -66,15 +60,11 @@ public:
         int removedPosition = it->position;
         sendCommand("DELINK", it->ipv6addr, it->port, removedPosition);
         if (godotConnected) {
-            sendToGodot("DELINK " + to_string(removedPosition));
+            sendToGodot("DELINK " + to_string(removedPosition + 1));
         }
         platoon.erase(it);
-        for (auto& truck : platoon) {
-            if (truck.position > removedPosition) {
-                truck.position--;
-            } else {
-                continue;
-            }
+        for (int i = 0; i < platoon.size(); i++){
+            platoon[i].position = i + 1;
         }
         for (const auto& truck : platoon) {
             cout << "Truck: " << truck.ipv6addr << ":" << truck.port << " Position: " << truck.position << endl;
@@ -248,16 +238,16 @@ void drivingMode(PlatoonLeader& leader) {
 void platoonManagementMode(PlatoonLeader& leader) {
     string line;
     while (true) {
-        cout << "Enter command (ADD <ipv6> <port> <position> | REMOVE <ipv6> <port> | DRIVE | EXIT): ";
+        cout << "Enter command (ADD <ipv6> <port> | REMOVE <ipv6> <port> | DRIVE | EXIT): ";
         getline(cin, line);
         stringstream ss(line);
         string command, ipv6addr;
-        int port, position;
+        int port;
 
         ss >> command;
         if (command == "ADD") {
-            ss >> ipv6addr >> port >> position;
-            leader.addTruck(ipv6addr, port, position);
+            ss >> ipv6addr >> port;
+            leader.addTruck(ipv6addr, port);
         } else if (command == "REMOVE") {
             ss >> ipv6addr >> port;
             leader.removeTruck(ipv6addr, port);
