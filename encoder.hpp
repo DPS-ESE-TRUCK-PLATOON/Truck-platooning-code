@@ -13,6 +13,10 @@ public:
     return header_only(MessageType::BRAKE);
   }
 
+  static std::vector<uint8_t> release() {
+    return header_only(MessageType::RELEASE);
+  }
+
   static std::vector<uint8_t> add(const AddPayload &p) {
     return with_payload(MessageType::ADD, &p, sizeof(p));
   }

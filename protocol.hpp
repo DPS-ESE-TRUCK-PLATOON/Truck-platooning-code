@@ -11,6 +11,7 @@ enum class MessageType : uint8_t {
   ADD = 1,
   REMOVE = 2,
   BRAKE = 3,
+  RELEASE = 4,
 
   // Data
   STATE = 10,
