@@ -12,6 +12,7 @@ std::mutex out_queue_mut;
 std::mutex in_queue_mut;
 std::queue<std::string> incoming;
 std::queue<std::string> outgoing;
+double tickrate = 60;
 
 enum packet_type { Data, Control };
 enum command { Join, Disjoin, Brake };
@@ -57,11 +58,11 @@ int main(int argc, char **argv) {
             processPacket(read_item_from_q(&in_queue_mut, &incoming));
         truck.locationOfTruckAhead.emplace_back(com.timeStamp, com.pos, com.speed,
                                             com.heading);
-        truck.platoonStandard(currentTime);
+        truck.platoonStandard(1/tickrate);
         break;
       }
     } else {
-      truck.platoonStandard(currentTime);
+      truck.platoonStandard(1/tickrate);
     }
   }
   close(sockfd);

@@ -1,7 +1,6 @@
 #include <algorithm>
 #include <cmath>
 #include <iostream>
-#include <numbers>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -37,7 +36,7 @@ public:
       : ipv6addr(addr), port(p), positionInPlatoon(-1), state(Delinked) {}
 
   void simulateFrame(float dt) {
-    speed += std::max((acceleration * dt), 0.0f);
+    speed += std::clamp((acceleration * dt), 0.0f, max_speed);
     loc.x += cos(heading) * speed * dt;
     loc.y += sin(heading) * speed * dt;
   }
@@ -51,6 +50,10 @@ public:
     heading = std::fmod(rad, 2.0f * PI);
     if (heading < 0.0f)
       heading += 2.0f * PI;
+  }
+  void setLocation(double x, double y) {
+    loc.x = x;
+    loc.y = y;
   }
   string getData() {
     return std::to_string(speed) + " " + std::to_string(heading*180/PI) + " " +
