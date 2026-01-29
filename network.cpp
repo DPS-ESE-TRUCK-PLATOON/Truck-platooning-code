@@ -12,13 +12,63 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
+// helpers
+ssize_t send_all(int sock, const uint8_t *data, size_t len) {
+    size_t sent = 0;
+    while (sent < len) {
+        ssize_t n = send(sock, data + sent, len - sent, 0);
+        if (n < 0 && (errno != EAGAIN && errno != EWOULDBLOCK)) return -1;
+        if (n <= 0) break;
+        sent += n;
+    }
+    return sent;
+}
+ssize_t recv_some(int sock, uint8_t *buf, size_t len) {
+    ssize_t n = recv(sock, buf, len, 0);
+    if (n < 0 && (errno == EAGAIN || errno == EWOULDBLOCK)) return 0;
+    return n;
+}
+
+
 int sockfd;
 int front_socket, front_port; // initialize socket at startup
 int lead_socket,
     lead_port; // initialized at startup and listen using the cli option address
 int back_socket, back_port; // must be initialized at startup
+std::string back_peer_ip;   // ip of back peer that will have shit sent to ti
+
 std::vector<int> sockets{front_socket, lead_socket, back_socket};
 
+std::mutex lead_out_mut, lead_in_mut, behind_out_mut, front_in_mut;
+std::queue<std::vector<uint8_t>> lead_out_queue, behind_out_queue;
+std::queue<proto::DecodedMessage> lead_in_queue, front_in_queue;
+
+void lead_tx(std::vector<uint8_t> item) {
+  std::lock_guard<std::mutex> lock(lead_out_mut);
+  lead_out_queue.push(item);
+}
+void behind_tx(std::vector<uint8_t> item) {
+  std::lock_guard<std::mutex> lock(behind_out_mut);
+  behind_out_queue.push(item);
+}
+bool lead_rx(proto::DecodedMessage &out) {
+  // returns true if there is something returned on the pointer
+  std::lock_guard<std::mutex> lock(lead_in_mut);
+  if (lead_in_queue.empty())
+    return false;
+  out = std::move(lead_in_queue.front());
+  lead_in_queue.pop();
+  return true;
+}
+bool front_rx(proto::DecodedMessage &out) {
+  // returns true if there is input that is returned on the pointer
+  std::lock_guard<std::mutex> lock(front_in_mut);
+  if (front_in_queue.empty())
+    return false;
+  out = std::move(front_in_queue.front());
+  front_in_queue.pop();
+  return true;
+}
 int init_sockets(int port) {
   for (int sockfd : sockets) {
     sockfd = socket(AF_INET6, SOCK_STREAM, 0);
@@ -67,39 +117,31 @@ int init_sockets(int port) {
   return 1;
 }
 
-std::mutex lead_out_mut, lead_in_mut, behind_out_mut, front_in_mut;
-std::queue<std::vector<uint8_t>> lead_out_queue, behind_out_queue;
-std::queue<proto::DecodedMessage> lead_in_queue, front_in_queue;
-
-void lead_out(std::vector<uint8_t> item) {
-  std::lock_guard<std::mutex> lock(lead_out_mut);
-  lead_out_queue.push(item);
+// using sockets with multiple threads is safe if they are only strictly
+// sending/receiving no mixing
+void back_tx_thread(bool *running) {
+  int connfd = -1;
+  while (running) {
+    
+  }
+}
+void front_rx_thread(bool *running) {
+  while (running) {
+    
+  }
 }
 
-void behind_out(std::vector<uint8_t> item) {
-  std::lock_guard<std::mutex> lock(behind_out_mut);
-  behind_out_queue.push(item);
+void lead_tx_thread(bool *running) {
+  while (running) {
+    
+  }
+}
+void lead_rx_thread(bool *running) {
+  while (running) {
+    
+  }
 }
 
-bool lead_in(proto::DecodedMessage &out) {
-  // returns true if there is something returned on the pointer
-  std::lock_guard<std::mutex> lock(lead_in_mut);
-  if (lead_in_queue.empty())
-    return false;
-  out = std::move(lead_in_queue.front());
-  lead_in_queue.pop();
-  return true;
-}
-
-bool front_in(proto::DecodedMessage &out) {
-  // returns true if there is input that is returned on the pointer
-  std::lock_guard<std::mutex> lock(front_in_mut);
-  if (front_in_queue.empty())
-    return false;
-  out = std::move(front_in_queue.front());
-  front_in_queue.pop();
-  return true;
-}
 
 // possibly move into their own file
 std::string read_item_from_q(std::mutex *in_lock,
@@ -138,11 +180,6 @@ int init_socket_front_truck(in6_addr ip, uint16_t port) {
   servaddr.sin6_port = port;
   servaddr.sin6_addr = ip;
 }
-
-// using sockets with multiple threads is safe if they are only strictly
-// sending/receiving no mixing
-void tx_thread() {}
-void rx_thread() {}
 
 int init_socket(Truck truck) {
   sockfd = socket(AF_INET6, SOCK_STREAM, 0);
