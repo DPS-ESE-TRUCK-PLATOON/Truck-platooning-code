@@ -7,17 +7,19 @@ constexpr uint8_t PROTOCOL_VERSION = 1;
 
 // Message Types
 enum class MessageType : uint8_t {
-  // Topology / control
+  // Topology / control (TCP)
   ADD = 1,
   REMOVE = 2,
   BRAKE = 3,
   RELEASE = 4,
 
-  // Data
+  // Data (UDP)
   STATE = 10,
+  
+  // Topology info (TCP)
   INFO = 11,
 
-  // Acknowledgements
+  // Acknowledgements (TCP)
   ACK_ADD = 20,
   ACK_REMOVE = 21,
   ACK_INFO = 22,
@@ -42,7 +44,7 @@ struct IPv6Address {
 
 // Payloads
 
-// ADD
+// ADD (TCP)
 #pragma pack(push, 1)
 struct AddPayload {
   uint32_t truck_id;
@@ -50,21 +52,21 @@ struct AddPayload {
 };
 #pragma pack(pop)
 
-// ACK_ADD
+// ACK_ADD (TCP)
 #pragma pack(push, 1)
 struct AckAddPayload {
   int pos;
 };
 #pragma pack(pop)
 
-// REMOVE
+// REMOVE (TCP)
 #pragma pack(push, 1)
 struct RemovePayload {
   uint32_t truck_id;
 };
 #pragma pack(pop)
 
-// INFO (authoritative topology)
+// INFO - authoritative topology (TCP)
 #pragma pack(push, 1)
 struct InfoPayload {
   uint32_t self_id;
@@ -73,29 +75,33 @@ struct InfoPayload {
   uint32_t behind_id;
 
   IPv6Address front_ip;
-  uint16_t front_port;
+  uint16_t front_port;  // UDP port for receiving STATE from front truck
 
   IPv6Address behind_ip;
-  uint16_t behind_port;
+  uint16_t behind_port; // UDP port where behind truck receives STATE
 };
 #pragma pack(pop)
 
-// ACK_INFO
+// ACK_INFO (TCP)
 #pragma pack(push, 1)
 struct AckInfoPayload {
   uint32_t self_id;
 };
 #pragma pack(pop)
 
-// STATE
+// STATE - position/velocity data (UDP)
+// Enhanced with sequence number for packet loss detection
 #pragma pack(push, 1)
 struct StatePayload {
-  float heading;
-  float speed;
-  float acceleration;
-  double x;
-  double y;
-  uint64_t timestamp_ns;
+  uint32_t truck_id;      // Who sent this
+  uint32_t sequence_num;  // Monotonically increasing
+  uint64_t timestamp_ns;  // When this was sent
+  
+  float heading;          // radians
+  float speed;            // m/s
+  float acceleration;     // m/s^2
+  double x;               // meters
+  double y;               // meters
 };
 #pragma pack(pop)
 
