@@ -124,15 +124,16 @@ void update_physics(float dt) {
 }
 
 int main(int argc, char **argv) {
-  int port = 8080;
+  int port = 1234;
 
+  // add a way to specify UDP port maybe?
   for (int i = 1; i < argc; i++) {
     if (std::string(argv[i]) == "--port" && i + 1 < argc) {
       port = std::stoi(argv[++i]);
     }
   }
 
-  signal(SIGINT, signal_handler);
+  //signal(SIGINT, signal_handler);
 
   if (!network::init(port)) {
     std::cerr << "Network init failed\n";
@@ -177,9 +178,9 @@ int main(int argc, char **argv) {
 
   // Cleanup
   running = false;
-  t1.join();
-  t2.join();
-  t3.join();
+  //t1.join();
+  //t2.join();
+  //t3.join();
   network::cleanup();
 
   return 0;
