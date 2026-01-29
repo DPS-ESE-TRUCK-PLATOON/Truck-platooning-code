@@ -15,7 +15,7 @@ enum class MessageType : uint8_t {
 
   // Data (UDP)
   STATE = 10,
-  
+
   // Topology info (TCP)
   INFO = 11,
 
@@ -24,6 +24,27 @@ enum class MessageType : uint8_t {
   ACK_REMOVE = 21,
   ACK_INFO = 22,
 };
+
+inline const char* ToString(MessageType v)
+{
+    switch (v)
+    {
+    case MessageType::ADD:        return "ADD";
+    case MessageType::REMOVE:     return "REMOVE";
+    case MessageType::BRAKE:      return "BRAKE";
+    case MessageType::RELEASE:    return "RELEASE";
+
+    case MessageType::STATE:      return "STATE";
+    case MessageType::INFO:       return "INFO";
+
+    case MessageType::ACK_ADD:    return "ACK_ADD";
+    case MessageType::ACK_REMOVE: return "ACK_REMOVE";
+    case MessageType::ACK_INFO:   return "ACK_INFO";
+
+    default:
+        return "[Unknown MessageType]";
+    }
+}
 
 // Packet Header
 #pragma pack(push, 1)

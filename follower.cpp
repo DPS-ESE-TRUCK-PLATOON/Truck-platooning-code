@@ -1,6 +1,7 @@
-#include "network.hpp"
-#include "truck.cpp"
 #include "network.cpp"
+#include "network.hpp"
+#include "protocol.hpp"
+#include "truck.cpp"
 #include <atomic>
 #include <csignal>
 #include <iostream>
@@ -41,8 +42,7 @@ void process_lead_messages() {
       truck_id = info.self_id;
       linked = true;
 
-      std::cout << "INFO: ID=" << info.self_id 
-                << " Front=" << info.front_id
+      std::cout << "INFO: ID=" << info.self_id << " Front=" << info.front_id
                 << " Behind=" << info.behind_id << "\n";
 
       // Configure back truck (will reconfigure if topology changes)
@@ -50,7 +50,7 @@ void process_lead_messages() {
         char addr[INET6_ADDRSTRLEN];
         inet_ntop(AF_INET6, &info.behind_ip, addr, sizeof(addr));
         uint16_t port = ntohs(info.behind_port);
-        
+
         std::cout << "  -> Sending STATE to " << addr << ":" << port << "\n";
         network::set_back_truck(addr, port);
       } else {
@@ -76,7 +76,7 @@ void process_lead_messages() {
 
     case proto::MessageType::BRAKE:
       std::cout << "BRAKE!\n";
-      truck.setAccel(-5.0f);
+      truck.setAccel(-9999.0f);
       break;
 
     case proto::MessageType::RELEASE:
@@ -84,7 +84,14 @@ void process_lead_messages() {
       truck.setAccel(0.0f);
       break;
 
+    case proto::MessageType::REMOVE:
+      std::cout << "REMOVED FROM PLATOON\n";
+      truck.setAccel(-9999.0f);
+      linked = 0;
+      break;
     default:
+      std::cout << "unimplemented packet from leader: " << ToString(msg.type)
+                << std::endl;
       break;
     }
   }
@@ -111,7 +118,7 @@ void process_front_messages() {
       // Debug
       static int count = 0;
       if (++count % 60 == 0) {
-        std::cout << "Front: speed=" << state.speed 
+        std::cout << "Front: speed=" << state.speed
                   << " our=" << truck.getSpeed() << "\n";
       }
     }
@@ -120,6 +127,10 @@ void process_front_messages() {
 
 void update_physics(float dt) {
   truck.simulateFrame(dt);
+  if (linked) {
+    truck.setAccel(truck.getAccel() + 0.001);
+  } else
+    truck.setAccel(-9999.0f);
   sync_to_atomics();
 }
 
@@ -133,7 +144,7 @@ int main(int argc, char **argv) {
     }
   }
 
-  //signal(SIGINT, signal_handler);
+  // signal(SIGINT, signal_handler);
 
   if (!network::init(port)) {
     std::cerr << "Network init failed\n";
@@ -168,8 +179,8 @@ int main(int argc, char **argv) {
       static int tick = 0;
       if (++tick % 120 == 0) {
         std::cout << "ID=" << truck_id.load() << " linked=" << linked.load()
-                  << " speed=" << truck.getSpeed() 
-                  << " pos=(" << truck.getX() << "," << truck.getY() << ")\n";
+                  << " speed=" << truck.getSpeed() << " pos=(" << truck.getX()
+                  << "," << truck.getY() << ")\n";
       }
     }
 
@@ -178,9 +189,9 @@ int main(int argc, char **argv) {
 
   // Cleanup
   running = false;
-  //t1.join();
-  //t2.join();
-  //t3.join();
+  // t1.join();
+  // t2.join();
+  // t3.join();
   network::cleanup();
 
   return 0;

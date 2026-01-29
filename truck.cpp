@@ -18,7 +18,8 @@ class Truck {
 
 public:
   void simulateFrame(float dt) {
-    speed += std::clamp((acceleration * dt), 0.0f, max_speed);
+    speed += acceleration * dt;
+    speed = std::clamp (speed, 0.0f, max_speed);
     x += std::cos(heading) * speed * dt;
     y += std::sin(heading) * speed * dt;
   }
