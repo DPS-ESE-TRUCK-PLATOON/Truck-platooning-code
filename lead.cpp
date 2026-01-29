@@ -31,6 +31,9 @@ private:
   int godotSocket = -1;
   bool godotConnected = false;
 
+  double acceleration = 0.0;
+  double heading = 0.0;
+
 public:
   void addTruck(const string &ipv6addr, int tcp_port, int udp_port) {
     auto it = find_if(platoon.begin(), platoon.end(),
@@ -160,7 +163,31 @@ public:
       return;
     }
 
-    string cmd(1, key);
+    const double accelStep = 10.0;
+    const double headingStep = 10.0;
+    const double maxAccel = 50.0;
+    const double minAccel = -50.0;
+
+    switch (key){
+    case 'w':
+      acceleration = min(acceleration + accelStep, maxAccel);
+      break;
+    case 's':
+      acceleration = max(acceleration - accelStep, minAccel);
+      break;
+    case 'a':
+      heading -= headingStep;
+      break;
+    case 'd':
+      heading += headingStep;
+      break;
+    case 'z':
+      acceleration = 0.0;
+      break;
+    }
+
+    string cmd = "ACCEL " + to_string(acceleration) +
+                 " HEADING " + to_string(heading);
     sendToGodot(cmd);
   }
 

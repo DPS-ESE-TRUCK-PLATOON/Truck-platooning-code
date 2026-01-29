@@ -7,6 +7,7 @@ extends Node2D
 @onready var follower_template = $Follower
 
 # movement variables
+var offset := PI/2
 var speed := 800.0
 var turn_speed := 90
 var rotation_threshold := 5
@@ -16,13 +17,18 @@ var position_histories = []
 var rotation_histories = []
 var history_length := 20
 
+# physics state variables
+var velocity := 0.0
+var heading := 0.0
+
 #tcp variables
 var tcp_server: TCPServer
 var client: StreamPeerTCP
 var server_port := 9999
 
 #network input state
-var network_input := Vector2.ZERO
+var network_accel := 0.0
+var network_heading := 0.0
 
 # preparation of the scene when hitting run
 func _ready():
@@ -48,24 +54,30 @@ func _process(delta: float) -> void:
 			var data = client.get_utf8_string(client.get_available_bytes())
 			process_network_command(data)
 	
-	var input = network_input
 	
 	if Input.is_action_just_pressed("ui_accept"):
 		spawn_follower()
 	
-	input = input.normalized()
+	#physics integration - velocity update here
+	velocity += network_accel * delta
+	velocity = clamp(velocity, 0, speed)
 	
-	truck.position += input * speed * delta
+	# friction drag to slow down
+	if network_accel == 0:
+		velocity = lerp(velocity, 0.0, 0.5 * delta)
+		
+	# physics integration heading update here
+	var target_heading_rad = deg_to_rad(network_heading)
+	heading = lerp_angle(heading, target_heading_rad, turn_speed * delta)
 	
-	# calculation and storage of the relative lead truck positions and rotations
-	if input != Vector2.ZERO:
-		var target_angle = calculate_target_angle(input)
-		var current_angle = truck.rotation
-		var angle_diff = normalize_angle(target_angle - current_angle)
-		
-		if abs(angle_diff) > deg_to_rad(rotation_threshold):
-			truck.rotation += angle_diff * turn_speed * delta
-		
+	# movement direction calculation
+	var direction = Vector2.RIGHT.rotated(heading)
+	
+	# update truck position and rotation
+	truck.position += direction * velocity * delta
+	truck.rotation = heading + offset
+	
+			
 	for i in range(platoon.size()):
 		position_histories[i].append(platoon[i].position)
 		rotation_histories[i].append(platoon[i].rotation)
@@ -74,39 +86,9 @@ func _process(delta: float) -> void:
 			position_histories[i].pop_front()
 			rotation_histories[i].pop_front()
 		
-	update_all_followers()
+	update_all_followers(delta)
 	
-# calculating target angle based on truck in front
-func calculate_target_angle(input: Vector2) -> float:
-	var target_angle = 0.0
-		
-	if input.x > 0:
-		if input.y > 0: 
-			target_angle = 3 * PI/4
-		elif input.y < 0:
-			target_angle = PI/4
-		else: 
-			target_angle = PI/2
-	elif input.x < 0:
-		if input.y > 0:
-			target_angle = -3 * PI/4
-		elif input.y < 0:
-			target_angle = -PI/4
-		else:
-			target_angle = -PI/2
-	elif input.y > 0:
-		target_angle = PI
-	elif input.y < 0:
-		target_angle = 0
-		
-	return target_angle
-	
-func normalize_angle(angle: float) -> float:
-	while angle > PI:
-		angle -= 2 * PI
-	while angle < -PI:
-		angle += 2 * PI
-	return angle
+
 
 # processing of movement, link/delink, and many other commands 
 func process_network_command(data: String):
@@ -114,7 +96,6 @@ func process_network_command(data: String):
 	# parsing commands and applying the correct one
 	var commands = data.split("\n", false)
 	
-	network_input = Vector2.ZERO
 	
 	for cmd in commands:
 		cmd = cmd.strip_edges()
@@ -126,8 +107,6 @@ func process_network_command(data: String):
 				var position = int(parts[1])
 				spawn_follower()
 				
-				#if client and client.get_status() == StreamPeerTCP.STATUS_CONNECTED:
-					#client.put_utf8_string("ACL LINK " + str(position) + "\n")
 			continue
 			
 		# checking for removing trucks
@@ -137,23 +116,15 @@ func process_network_command(data: String):
 				var position = int(parts[1])
 				remove_follower(position)
 				
-				#if client and client.get_status() == StreamPeerTCP.STATUS_CONNECTED:
-					#client.put_utf8_string("ACL DELINK " + str(position) + "\n")
 			continue
 			
-		cmd = cmd.to_lower()
-		
-		match cmd:
-			"w":
-				network_input.y -= 1
-			"s":
-				network_input.y += 1
-			"a":
-				network_input.x -= 1
-			"d":
-				network_input.x += 1
-			"z":
-				network_input = Vector2.ZERO
+		# parsing for new Accel and Heading commands
+		if cmd.to_upper().begins_with("ACCEL"):
+			var parts = cmd.split(" ", false)
+			if parts.size() >= 4: 
+				network_accel = float(parts[1])
+				network_heading = float(parts[3])
+			continue
 
 # setting up server in ready function
 func setup_server():
@@ -212,25 +183,28 @@ func remove_follower(position: int):
 	
 	print("Removed follower at position ", position, ". Total trucks: ", platoon.size())
 
-func update_all_followers():
+func update_all_followers(delta: float):
 	
 	for i in range(1, platoon.size()):
 		var follower_truck = platoon[i]
 		var leader_idx = i - 1
 	
+		# using delayed position from history
 		if position_histories[leader_idx].size() > 0:
 			var delayed_position = position_histories[leader_idx][0]
 			var delayed_rotation = rotation_histories[leader_idx][0]
-			
+		
 			var current_distance = platoon[leader_idx].position.distance_to(follower_truck.position)
-
-			if current_distance > distance: 
-				follower_truck.position = follower_truck.position.lerp(delayed_position, 0.15)
-				follower_truck.rotation = lerp_angle(follower_truck.rotation, delayed_rotation, 0.15)
-			#var facing_angle = delayed_rotation - PI/2
-			#var facing_direction = Vector2.RIGHT.rotated(facing_angle)
-			else: 
-				follower_truck.rotation = lerp_angle(follower_truck.rotation, delayed_rotation, 0.15)
+			var smooth_factor = 12.0
+		
+			if current_distance > distance:
+				follower_truck.position = follower_truck.position.lerp(delayed_position, smooth_factor * delta)
+			follower_truck.rotation = lerp_angle(follower_truck.rotation, delayed_rotation, smooth_factor * delta)
+		
+	#
+			# rotation smoothing
+			#follower_truck.rotation = lerp_angle(follower_truck.rotation, delayed_rotation, 8.0 * delta)
+		
 
 func _exit_tree():
 	if client:
