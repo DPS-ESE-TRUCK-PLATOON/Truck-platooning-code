@@ -9,9 +9,63 @@
 #include <netinet/in.h>
 #include <poll.h>
 #include <queue>
+#include <sys/socket.h>
 #include <unistd.h>
 
 int sockfd;
+int front_socket, front_port; // initialize socket at startup
+int lead_socket,
+    lead_port; // initialized at startup and listen using the cli option address
+int back_socket, back_port; // must be initialized at startup
+std::vector<int> sockets{front_socket, lead_socket, back_socket};
+
+int init_sockets(int port) {
+  for (int sockfd : sockets) {
+    sockfd = socket(AF_INET6, SOCK_STREAM, 0);
+    if (sockfd < 0) {
+      std::cerr << "Socket creation failed" << std::endl;
+      return -1;
+    }
+    int flags = fcntl(sockfd, F_GETFL, 0);
+    fcntl(sockfd, F_SETFL, flags | O_NONBLOCK);
+  }
+  lead_port = port;
+  struct sockaddr_in6 sockaddr;
+  sockaddr.sin6_family = AF_INET6;
+  sockaddr.sin6_port = htons(lead_port);
+  sockaddr.sin6_addr = in6addr_any;
+  if (bind(lead_socket, (struct sockaddr *)&sockaddr, sizeof(sockaddr)) < 0) {
+    std::cerr << "Bind failed" << std::endl;
+    return -1;
+  }
+  sockaddr.sin6_port = htons(0); // allow OS to choose a free port for front
+  if (bind(front_socket, (struct sockaddr *)&sockaddr, sizeof(sockaddr)) < 0) {
+    std::cerr << "Bind failed" << std::endl;
+    return -1;
+  }
+  socklen_t addrlen = sizeof(sockaddr);
+  if (getsockname(front_socket, (struct sockaddr *)&sockaddr, &addrlen) < 0) {
+    close(front_socket);
+    std::cerr << "Failed to call getsockname()" << std::endl;
+  }
+  front_port = ntohs(sockaddr.sin6_port);
+  sockaddr.sin6_port = htons(0); // allow OS to choose a free port for back
+  if (bind(back_socket, (struct sockaddr *)&sockaddr, sizeof(sockaddr)) < 0) {
+    std::cerr << "Bind failed" << std::endl;
+    return -1;
+  }
+  if (getsockname(back_socket, (struct sockaddr *)&sockaddr, &addrlen) < 0) {
+    close(back_socket);
+    std::cerr << "Failed to call getsockname()" << std::endl;
+  }
+  back_port = ntohs(sockaddr.sin6_port);
+
+  std::cout << "Truck listening on [ all interfaces ]" << std::endl;
+  std::cout << "lead port: " << lead_port << std::endl;
+  std::cout << "back port: " << back_port << std::endl;
+  std::cout << "frnt port: " << front_port << std::endl;
+  return 1;
+}
 
 std::mutex lead_out_mut, lead_in_mut, behind_out_mut, front_in_mut;
 std::queue<std::vector<uint8_t>> lead_out_queue, behind_out_queue;
@@ -28,7 +82,7 @@ void behind_out(std::vector<uint8_t> item) {
 }
 
 bool lead_in(proto::DecodedMessage &out) {
-  // returns true if there is input returned on the pointer
+  // returns true if there is something returned on the pointer
   std::lock_guard<std::mutex> lock(lead_in_mut);
   if (lead_in_queue.empty())
     return false;
@@ -87,8 +141,8 @@ int init_socket_front_truck(in6_addr ip, uint16_t port) {
 
 // using sockets with multiple threads is safe if they are only strictly
 // sending/receiving no mixing
-void in_thread() {}
-void out_thread() {}
+void tx_thread() {}
+void rx_thread() {}
 
 int init_socket(Truck truck) {
   sockfd = socket(AF_INET6, SOCK_STREAM, 0);
