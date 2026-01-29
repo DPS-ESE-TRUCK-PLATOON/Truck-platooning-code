@@ -1,0 +1,60 @@
+[gd_scene load_steps=8 format=4 uid="uid://04eu4lw2aro0"]
+
+[ext_resource type="Script" uid="uid://dmca4hue6s10e" path="res://scripts/main.gd" id="1_sugp2"]
+[ext_resource type="Texture2D" uid="uid://0luydgdc0rt6" path="res://assets/CarGameAsset/Car Game Asset/Bonus/Truck_A_139x353.png" id="2_0wfyh"]
+[ext_resource type="Texture2D" uid="uid://b6j36wk8v1bal" path="res://assets/Road_test.png" id="4_jyhfs"]
+[ext_resource type="Texture2D" uid="uid://dtfkxpp83y62a" path="res://assets/CarGameAsset/Car Game Asset/Bonus/Truck_B_139x353.png" id="4_tbgi4"]
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_jyhfs"]
+texture = ExtResource("4_jyhfs")
+texture_region_size = Vector2i(40, 40)
+34:5/size_in_atlas = Vector2i(25, 18)
+34:5/0 = 0
+63:13/size_in_atlas = Vector2i(22, 33)
+63:13/0 = 0
+34:27/size_in_atlas = Vector2i(25, 33)
+34:27/0 = 0
+10:17/size_in_atlas = Vector2i(17, 25)
+10:17/0 = 0
+6:53/size_in_atlas = Vector2i(21, 25)
+6:53/0 = 0
+34:71/size_in_atlas = Vector2i(25, 25)
+34:71/0 = 0
+64:58/size_in_atlas = Vector2i(21, 25)
+64:58/0 = 0
+
+[sub_resource type="TileSet" id="TileSet_tefeu"]
+tile_size = Vector2i(40, 40)
+sources/4 = SubResource("TileSetAtlasSource_jyhfs")
+
+[sub_resource type="Curve2D" id="Curve2D_sugp2"]
+_data = {
+"points": PackedVector2Array(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3562, 0, 0, 0, 0, 0, 3682, -2, 0, 0, 0, 0, 3853, -1, 0, 0, 0, 0, 3976, -109, 0, 0, 0, 0, 3991, -280, 0, 0, 0, 0, 3988, -1406, 0, 0, 0, 0, 3978, -3839, 0, 0, 0, 0, 4018, -4370, 0, 0, 0, 0, 3898, -4490, 0, 0, 0, 0, 3199, -4490, 0, 0, 0, 0, 215, -4490, 0, 0, 0, 0, -2433, -4493, 0, 0, 0, 0, -5535, -4493, 0, 0, 0, 0, -8856, -4490, 0, 0, 0, 0, -9155, -4499, 0, 0, 0, 0, -9335, -4422, 0, 0, 0, 0, -9392, -4213, 0, 0, 0, 0, -9389, -2907, 0, 0, 0, 0, -9386, -1489, 0, 0, 0, 0, -9349, -1369, 0, 0, 0, 0, -9255, -1283, 0, 0, 0, 0, -9038, -1263, 0, 0, 0, 0, -8419, -1266, 0, 0, 0, 0, -2591, -1272, 0, 0, 0, 0, -2443, -1273, 0, 0, 0, 0, -2346, -1222, 0, 0, 0, 0, -2268, -1149, 0, 0, 0, 0, -2241, -966, 0, 0, 0, 0, -2238, -806, 0, 0, 0, 0, -2212, -535, 0, 0, 0, 0, -2242, -330, 0, 0, 0, 0, -2415, -193, 0, 0, 0, 0, -2884, -200, 0, 0, 0, 0, -8024, -228, 0, 0, 0, 0, -8171, -201, 0, 0, 0, 0, -8308, -114, 0, 0, 0, 0, -8350, 97, 0, 0, 0, 0, -8332, 367, 0, 0, 0, 0, -8332, 641, 0, 0, 0, 0, -8335, 833, 0, 0, 0, 0, -8292, 924, 0, 0, 0, 0, -8210, 1002, 0, 0, 0, 0, -8034, 1013, 0, 0, 0, 0, -7491, 1013, 0, 0, 0, 0, -5109, 1011, 0, 0, 0, 0, -5019, 961, 0, 0, 0, 0, -4951, 844, 0, 0, 0, 0, -4950, 671, 0, 0, 0, 0, -4951, 184, 0, 0, 0, 0, -4844, 37, 0, 0, 0, 0, -4508, -4, 0, 0, 0, 0, -2468, 10, 0, 0, 0, 0, -2348, 52, 0, 0, 0, 0, -2288, 100, 0, 0, 0, 0, -2226, 204, 0, 0, 0, 0, -2214, 348, 0, 0, 0, 0, -2217, 3928, 0, 0, 0, 0, -2204, 4045, 0, 0, 0, 0, -2151, 4138, 0, 0, 0, 0, -2013, 4181, 0, 0, 0, 0, -1677, 4173, 0, 0, 0, 0, -422, 4181, 0, 0, 0, 0, 3829, 4176, 0, 0, 0, 0, 3952, 4136, 0, 0, 0, 0, 3999, 4066, 0, 0, 0, 0, 4018, 3930, 0, 0, 0, 0, 3925, -47)
+}
+point_count = 68
+
+[node name="Main" type="Node2D"]
+script = ExtResource("1_sugp2")
+
+[node name="TileMapLayer" type="TileMapLayer" parent="."]
+tile_map_data = PackedByteArray("AAD9//3/BAAiAAUAAAAWAP3/BAAiAAUAAAAvAP3/BAAiAAUAAABIAP3/BAAiAAUAAADk//3/BAAiAAUAAABfAP3/BAA/AA0AAABhAOD/BAAKABEAAABhAMf/BAAKABEAAABhAK//BAAKABEAAABfAJb/BABAADoAAABIAJL/BAAiAAUAAAAvAJL/BAAiAAUAAAAWAJL/BAAiAAUAAAD//5b/BAAiAEcAAADL//3/BAAiABsAAAD//67/BAAKABEAAAD9/8f/BAAGADUAAADm/8v/BAAiAAUAAADN/8v/BAAiAAUAAAC0/8v/BAAiAAUAAADI/+H/BABAADoAAACx/93/BAAiAAUAAACY/93/BAAiAAUAAACd/8v/BAAiAAUAAABhABgABAAKABEAAABhADEABAAKABEAAADL/xoABAAKABEAAADL/zMABAAKABEAAADL/0wABAAKABEAAABhAEoABAAKABEAAADP/2MABAAGADUAAFDn/2UABAAiAAUAAAD//2UABAAiAAUAAAAYAGUABAAiAAUAAAAwAGUABAAiAAUAAABIAGUABAAiAAUAAABdAGMABABAADoAAFBhAE4ABAAKABEAAACE/8v/BAAiAAUAAAB//93/BAAiAAUAAABm/93/BAAiAAUAAABN/93/BAAiAAUAAAA0/93/BAAiAAUAAADm/5L/BAAiAAUAAADN/5L/BAAiAAUAAAC0/5L/BAAiAAUAAACb/5L/BAAiAAUAAACC/5L/BAAiAAUAAABp/5L/BAAiAAUAAABQ/5L/BAAiAAUAAAA3/5L/BAAiAAUAAAAY/67/BAAKABEAAAAc/5T/BABAADoAAGA1/5L/BAAiAAUAAAAY/6r/BAAKABEAAAAa/8r/BAA/AA0AADAc/9v/BAAGADUAAFBr/8v/BAAiAAUAAABT/8v/BAAiAAUAAAA6/8v/BAAiAAUAAAAx/8v/BAAiAAUAAACz//3/BAAiAAUAAACa//3/BAAiAAUAAACB/wEABAAiAEcAAABo//3/BAAiAAUAAABP//3/BAAiAAUAAAA2////BABAADoAAGB//xIABAAGADUAAAA2/xQABAAGADUAAFBO/xYABAAiAAUAAABn/xYABAAiAAUAAABo/xYABAAiAAUAAAA=")
+tile_set = SubResource("TileSet_tefeu")
+
+[node name="Lanes" type="Node2D" parent="."]
+
+[node name="Path2D" type="Path2D" parent="Lanes"]
+curve = SubResource("Curve2D_sugp2")
+
+[node name="Lead" type="Sprite2D" parent="."]
+rotation = 1.5707964
+scale = Vector2(0.3, 0.309)
+texture = ExtResource("2_0wfyh")
+
+[node name="Camera2D" type="Camera2D" parent="Lead"]
+zoom = Vector2(0.5, 0.5)
+
+[node name="Follower" type="Sprite2D" parent="."]
+position = Vector2(-8144, 7024)
+rotation = 1.5707964
+scale = Vector2(0.3, 0.3)
+texture = ExtResource("4_tbgi4")
