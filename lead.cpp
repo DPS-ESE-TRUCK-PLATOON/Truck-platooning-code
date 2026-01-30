@@ -34,6 +34,8 @@ public:
 private:
   int godotSocket = -1;
   bool godotConnected = false;
+  int front_udp_sock = -1;
+  uint32_t state_seq = 0;
 
 public:
   void sendStateToGodot() {
@@ -46,6 +48,39 @@ public:
                  " " + to_string(truck.getAccel());
 
     sendToGodot(cmd);
+  }
+
+  void sendStateToFirstTruck() {
+    if (platoon.empty()) {
+      return;
+    }
+
+    const auto &first_truck = platoon[0];
+
+    proto::StatePayload state = {};
+    state.truck_id = 0; // Lead truck ID is 0
+    state.sequence_num = state_seq++;
+    state.timestamp_ns = chrono::duration_cast<chrono::nanoseconds>(
+                             chrono::system_clock::now().time_since_epoch())
+                             .count();
+    state.heading = truck.getHeading();
+    state.speed = truck.getSpeed();
+    state.acceleration = truck.getAccel();
+    state.x = truck.getX();
+    state.y = truck.getY();
+
+    auto msg = proto::Encoder::state(state);
+
+    // Send via UDP to first truck's front_udp_port
+    struct sockaddr_in6 addr;
+    memset(&addr, 0, sizeof(addr));
+    addr.sin6_family = AF_INET6;
+    addr.sin6_port = htons(first_truck.udp_port);
+    if (inet_pton(AF_INET6, first_truck.ipv6addr.c_str(), &addr.sin6_addr) >
+        0) {
+      sendto(front_udp_sock, msg.data(), msg.size(), 0,
+             (struct sockaddr *)&addr, sizeof(addr));
+    }
   }
 
   void addTruck(const string &ipv6addr, int tcp_port, int udp_port) {
@@ -67,10 +102,19 @@ public:
     cout << "Adding truck ID=" << truck_id << " at position " << position
          << " (UDP:" << udp_port << ")" << endl;
 
+    // Send info to the newly added truck
     sendInfoToTruck(platoon.back());
 
+    // If not the first truck, update the previous truck's info (it now has a
+    // truck behind it)
     if (position > 1) {
       sendInfoToTruck(platoon[position - 2]);
+    }
+
+    // If this is the first truck and there are now 2+ trucks, also update the
+    // new second truck
+    if (position == 1 && platoon.size() > 1) {
+      sendInfoToTruck(platoon[1]);
     }
 
     if (godotConnected) {
@@ -160,6 +204,16 @@ public:
     }
 
     godotConnected = true;
+
+    // Initialize UDP socket for sending STATE to first truck
+    front_udp_sock = socket(AF_INET6, SOCK_DGRAM, 0);
+    if (front_udp_sock < 0) {
+      cerr << "Failed to create UDP socket for STATE transmission" << endl;
+      close(godotSocket);
+      godotConnected = false;
+      return false;
+    }
+
     return true;
   }
 
@@ -167,6 +221,10 @@ public:
     if (godotSocket >= 0) {
       close(godotSocket);
       godotConnected = false;
+    }
+    if (front_udp_sock >= 0) {
+      close(front_udp_sock);
+      front_udp_sock = -1;
     }
   }
 
@@ -349,6 +407,7 @@ void drivingMode(PlatoonLeader &leader) {
 
     leader.truck.simulateFrame(dt);
     leader.sendStateToGodot();
+    leader.sendStateToFirstTruck();
 
     ssize_t n = read(STDIN_FILENO, &ch, 1);
 

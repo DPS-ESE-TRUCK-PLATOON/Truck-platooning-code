@@ -25,25 +25,32 @@ enum class MessageType : uint8_t {
   ACK_INFO = 22,
 };
 
-inline const char* ToString(MessageType v)
-{
-    switch (v)
-    {
-    case MessageType::ADD:        return "ADD";
-    case MessageType::REMOVE:     return "REMOVE";
-    case MessageType::BRAKE:      return "BRAKE";
-    case MessageType::RELEASE:    return "RELEASE";
+inline const char *ToString(MessageType v) {
+  switch (v) {
+  case MessageType::ADD:
+    return "ADD";
+  case MessageType::REMOVE:
+    return "REMOVE";
+  case MessageType::BRAKE:
+    return "BRAKE";
+  case MessageType::RELEASE:
+    return "RELEASE";
 
-    case MessageType::STATE:      return "STATE";
-    case MessageType::INFO:       return "INFO";
+  case MessageType::STATE:
+    return "STATE";
+  case MessageType::INFO:
+    return "INFO";
 
-    case MessageType::ACK_ADD:    return "ACK_ADD";
-    case MessageType::ACK_REMOVE: return "ACK_REMOVE";
-    case MessageType::ACK_INFO:   return "ACK_INFO";
+  case MessageType::ACK_ADD:
+    return "ACK_ADD";
+  case MessageType::ACK_REMOVE:
+    return "ACK_REMOVE";
+  case MessageType::ACK_INFO:
+    return "ACK_INFO";
 
-    default:
-        return "[Unknown MessageType]";
-    }
+  default:
+    return "[Unknown MessageType]";
+  }
 }
 
 // Packet Header
@@ -96,7 +103,7 @@ struct InfoPayload {
   uint32_t behind_id;
 
   IPv6Address front_ip;
-  uint16_t front_port;  // UDP port for receiving STATE from front truck
+  uint16_t front_port; // UDP port for receiving STATE from front truck
 
   IPv6Address behind_ip;
   uint16_t behind_port; // UDP port where behind truck receives STATE
@@ -114,15 +121,15 @@ struct AckInfoPayload {
 // Enhanced with sequence number for packet loss detection
 #pragma pack(push, 1)
 struct StatePayload {
-  uint32_t truck_id;      // Who sent this
-  uint32_t sequence_num;  // Monotonically increasing
-  uint64_t timestamp_ns;  // When this was sent
-  
-  float heading;          // radians
-  float speed;            // m/s
-  float acceleration;     // m/s^2
-  double x;               // meters
-  double y;               // meters
+  uint32_t truck_id;     // Who sent this
+  uint32_t sequence_num; // Monotonically increasing
+  uint64_t timestamp_ns; // When this was sent
+
+  float heading;      // radians
+  float speed;        // m/s
+  float acceleration; // m/s^2
+  double x;           // meters
+  double y;           // meters
 };
 #pragma pack(pop)
 

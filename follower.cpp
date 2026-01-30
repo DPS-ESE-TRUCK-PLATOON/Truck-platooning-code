@@ -103,7 +103,7 @@ void process_front_messages() {
     if (msg.type == proto::MessageType::STATE) {
       const auto &state = proto::Decoder::as_state(msg);
 
-      // Simple platooning: match front truck's speed
+      // Match front truck's speed
       float target_speed = state.speed;
       float speed_diff = target_speed - truck.getSpeed();
 
@@ -115,11 +115,15 @@ void process_front_messages() {
 
       truck.setAccel(new_accel);
 
+      // Match front truck's heading
+      truck.setHeading(state.heading);
+
       // Debug
       static int count = 0;
       if (++count % 60 == 0) {
         std::cout << "Front: speed=" << state.speed
-                  << " our=" << truck.getSpeed() << " Heading: "<< truck.getHeading() << std::endl;
+                  << " our=" << truck.getSpeed()
+                  << " Heading: " << truck.getHeading() << std::endl;
       }
     }
   }
@@ -129,7 +133,6 @@ void update_physics(float dt) {
   truck.simulateFrame(dt);
   if (linked) {
     truck.setAccel(truck.getAccel() + 0.001); // TESTING
-    truck.setHeading(truck.getHeading() + 1);
   } else
     truck.setAccel(-9999.0f);
   sync_to_atomics();
