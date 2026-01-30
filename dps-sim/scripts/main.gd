@@ -16,6 +16,7 @@ var platoon = []
 var position_histories = []
 var rotation_histories = []
 var history_length := 20
+var target_rotation := 0.0
 
 # physics state variables
 var velocity := 0.0
@@ -37,6 +38,7 @@ func _ready():
 	position_histories.append([])
 	rotation_histories.append([])
 	setup_server()
+	target_rotation = truck.rotation
 
 # Called every frame. 'delta' is the elapsed time since the previous frame.
 func _process(delta: float) -> void:
@@ -58,25 +60,25 @@ func _process(delta: float) -> void:
 	if Input.is_action_just_pressed("ui_accept"):
 		spawn_follower()
 	
-	#physics integration - velocity update here
-	velocity += network_accel * delta
-	velocity = clamp(velocity, 0, speed)
-	
-	# friction drag to slow down
-	if network_accel == 0:
-		velocity = lerp(velocity, 0.0, 0.5 * delta)
-		
-	# physics integration heading update here
-	var target_heading_rad = deg_to_rad(network_heading)
-	heading = lerp_angle(heading, target_heading_rad, turn_speed * delta)
-	
-	# movement direction calculation
-	var direction = Vector2.RIGHT.rotated(heading)
-	
-	# update truck position and rotation
-	truck.position += direction * velocity * delta
-	truck.rotation = heading + offset
-	
+	##physics integration - velocity update here
+	#velocity += network_accel * delta
+	#velocity = clamp(velocity, 0, speed)
+	#
+	## friction drag to slow down
+	#if network_accel == 0:
+		#velocity = lerp(velocity, 0.0, 0.5 * delta)
+		#
+	## physics integration heading update here
+	#var target_heading_rad = deg_to_rad(network_heading)
+	#heading = lerp_angle(heading, target_heading_rad, turn_speed * delta)
+	#
+	## movement direction calculation
+	#var direction = Vector2.RIGHT.rotated(heading)
+	#
+	## update truck position and rotation
+	#truck.position += direction * velocity * delta
+	#truck.rotation = heading + offset
+	#
 			
 	for i in range(platoon.size()):
 		position_histories[i].append(platoon[i].position)
@@ -96,7 +98,6 @@ func process_network_command(data: String):
 	# parsing commands and applying the correct one
 	var commands = data.split("\n", false)
 	
-	
 	for cmd in commands:
 		cmd = cmd.strip_edges()
 		
@@ -104,9 +105,7 @@ func process_network_command(data: String):
 		if cmd.to_upper().begins_with("LINK"):
 			var parts = cmd.split(" ", false)
 			if parts.size() >= 2:
-				var position = int(parts[1])
 				spawn_follower()
-				
 			continue
 			
 		# checking for removing trucks
@@ -115,15 +114,19 @@ func process_network_command(data: String):
 			if parts.size() >= 2:
 				var position = int(parts[1])
 				remove_follower(position)
-				
 			continue
 			
-		# parsing for new Accel and Heading commands
-		if cmd.to_upper().begins_with("ACCEL"):
+		# parsing for STATE commands
+		if cmd.to_upper().begins_with("STATE"):
 			var parts = cmd.split(" ", false)
-			if parts.size() >= 4: 
-				network_accel = float(parts[1])
-				network_heading = float(parts[3])
+			if parts.size() >= 5:
+				var new_x = float(parts[1]) * 1.8
+				var new_y = float(parts[2]) * 1.8
+				var new_heading = float(parts[3])
+				
+				truck.position = Vector2(new_x, new_y)
+				truck.rotation = deg_to_rad(new_heading) + offset
+				print("Heading: ", new_heading, " Rotation: ", truck.rotation)
 			continue
 
 # setting up server in ready function

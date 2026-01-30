@@ -11,6 +11,8 @@
 #include <termios.h>
 #include <unistd.h>
 #include <vector>
+#include <cmath>
+#include <chrono>
 
 using namespace std;
 
@@ -31,10 +33,37 @@ private:
   int godotSocket = -1;
   bool godotConnected = false;
 
+  double velocity = 0.0;
   double acceleration = 0.0;
   double heading = 0.0;
+  double position_x = 0.0;
+  double position_y = 0.0;
 
 public:
+  void sendStateToGodot() {
+    if (!godotConnected) {
+      cerr << "Not connected to Godot." << endl;
+      return;
+    }
+
+    string cmd = "STATE " + to_string(position_x) + " " + to_string(position_y) +
+                 " " + to_string(heading) + " " + to_string(acceleration);
+    sendToGodot(cmd);
+  }
+
+  void updatePhysics(double dt) {
+    velocity += acceleration * dt;
+    velocity = max(-200.0, min(velocity, 200.0));
+
+    if (acceleration == 0) {
+      velocity *= (1.0 - 0.5 * dt);
+    }
+
+    double heading_rad = heading * M_PI / 180.0;
+    position_x += velocity * dt * cos(heading_rad);
+    position_y += velocity * dt * sin(heading_rad);
+  }
+
   void addTruck(const string &ipv6addr, int tcp_port, int udp_port) {
     auto it = find_if(platoon.begin(), platoon.end(),
                       [&ipv6addr, tcp_port](const TruckInfo &truck) {
@@ -163,10 +192,10 @@ public:
       return;
     }
 
-    const double accelStep = 10.0;
+    const double accelStep = 50.0;
     const double headingStep = 10.0;
-    const double maxAccel = 50.0;
-    const double minAccel = -50.0;
+    const double maxAccel = 200.0;
+    const double minAccel = -200.0;
 
     switch (key){
     case 'w':
@@ -186,9 +215,9 @@ public:
       break;
     }
 
-    string cmd = "ACCEL " + to_string(acceleration) +
-                 " HEADING " + to_string(heading);
-    sendToGodot(cmd);
+    /*string cmd = "STATE " + to_string(position_x) + " " + to_string(position_y) +
+                 " " + to_string(heading) + " " + to_string(acceleration);
+    sendToGodot(cmd);*/
   }
 
   bool isConnectedToGodot() const { return godotConnected; }
@@ -329,7 +358,18 @@ void drivingMode(PlatoonLeader &leader) {
 
   bool driving = true;
   char ch;
+
+  auto last_time = chrono::steady_clock::now();
+
   while (driving) {
+    auto current_time = chrono::steady_clock::now();
+    double dt = chrono::duration<double>(current_time - last_time).count();
+    last_time = current_time;
+
+    leader.updatePhysics(dt);
+    leader.sendStateToGodot();
+
+
     ssize_t n = read(STDIN_FILENO, &ch, 1);
 
     if (n > 0) {
