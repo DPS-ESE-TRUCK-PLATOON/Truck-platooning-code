@@ -119,7 +119,7 @@ void process_front_messages() {
       static int count = 0;
       if (++count % 60 == 0) {
         std::cout << "Front: speed=" << state.speed
-                  << " our=" << truck.getSpeed() << "\n";
+                  << " our=" << truck.getSpeed() << " Heading: "<< truck.getHeading() << std::endl;
       }
     }
   }
@@ -128,7 +128,8 @@ void process_front_messages() {
 void update_physics(float dt) {
   truck.simulateFrame(dt);
   if (linked) {
-    truck.setAccel(truck.getAccel() + 0.001);
+    truck.setAccel(truck.getAccel() + 0.001); // TESTING
+    truck.setHeading(truck.getHeading() + 1);
   } else
     truck.setAccel(-9999.0f);
   sync_to_atomics();

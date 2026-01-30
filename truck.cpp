@@ -42,7 +42,9 @@ public:
     y = py;
   }
 
-  float getHeading() const { return heading; }
+  float getHeading() const {
+    return heading * 180 / PI;
+  }
   float getSpeed() const { return speed; }
   float getAccel() const { return acceleration; }
   double getX() const { return x; }

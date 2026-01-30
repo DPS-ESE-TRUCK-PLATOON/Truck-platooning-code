@@ -1,5 +1,6 @@
 #include "encoder.hpp"
 #include "protocol.hpp"
+#include "truck.cpp"
 #include <algorithm>
 #include <arpa/inet.h>
 #include <cstring>
@@ -28,16 +29,11 @@ class PlatoonLeader {
 public:
   vector<TruckInfo> platoon;
   uint32_t next_truck_id = 1;
-
+  Truck truck = Truck();
+  
 private:
   int godotSocket = -1;
   bool godotConnected = false;
-
-  double velocity = 0.0;
-  double acceleration = 0.0;
-  double heading = 0.0;
-  double position_x = 0.0;
-  double position_y = 0.0;
 
 public:
   void sendStateToGodot() {
@@ -45,23 +41,10 @@ public:
       cerr << "Not connected to Godot." << endl;
       return;
     }
-
-    string cmd = "STATE " + to_string(position_x) + " " + to_string(position_y) +
-                 " " + to_string(heading) + " " + to_string(acceleration);
+    string cmd = "STATE " + to_string(truck.getX()) + " " + to_string(truck.getY()) +
+      " " + to_string(truck.getHeading()) + " " + to_string(truck.getAccel());
+ 
     sendToGodot(cmd);
-  }
-
-  void updatePhysics(double dt) {
-    velocity += acceleration * dt;
-    velocity = max(-200.0, min(velocity, 200.0));
-
-    if (acceleration == 0) {
-      velocity *= (1.0 - 0.5 * dt);
-    }
-
-    double heading_rad = heading * M_PI / 180.0;
-    position_x += velocity * dt * cos(heading_rad);
-    position_y += velocity * dt * sin(heading_rad);
   }
 
   void addTruck(const string &ipv6addr, int tcp_port, int udp_port) {
@@ -192,32 +175,30 @@ public:
       return;
     }
 
-    const double accelStep = 50.0;
-    const double headingStep = 10.0;
-    const double maxAccel = 200.0;
-    const double minAccel = -200.0;
+    const double accelStep = 1;
+    const float headingStep = 2;
 
     switch (key){
     case 'w':
-      acceleration = min(acceleration + accelStep, maxAccel);
+      truck.setAccel(truck.getAccel() + accelStep);
       break;
     case 's':
-      acceleration = max(acceleration - accelStep, minAccel);
+      truck.setAccel(truck.getAccel() - accelStep);
       break;
     case 'a':
-      heading -= headingStep;
+      truck.setHeading(truck.getHeading() - headingStep);
       break;
     case 'd':
-      heading += headingStep;
+      truck.setHeading(truck.getHeading() + headingStep);
       break;
     case 'z':
-      acceleration = 0.0;
+      truck.setAccel(0.0);
+      break;
+    case ' ': // emergency brake to all trucks
+      sendBrake();
+      truck.setAccel(-9999.0);
       break;
     }
-
-    /*string cmd = "STATE " + to_string(position_x) + " " + to_string(position_y) +
-                 " " + to_string(heading) + " " + to_string(acceleration);
-    sendToGodot(cmd);*/
   }
 
   bool isConnectedToGodot() const { return godotConnected; }
@@ -366,7 +347,7 @@ void drivingMode(PlatoonLeader &leader) {
     double dt = chrono::duration<double>(current_time - last_time).count();
     last_time = current_time;
 
-    leader.updatePhysics(dt);
+    leader.truck.simulateFrame(dt);
     leader.sendStateToGodot();
 
 
@@ -380,11 +361,12 @@ void drivingMode(PlatoonLeader &leader) {
       case 's':
       case 'd':
       case 'z':
+      case ' ':
         leader.sendDriveCommand(ch);
         break;
       case 'q':
         driving = false;
-        leader.sendDriveCommand('z');
+        leader.sendDriveCommand(' ');
         break;
       default:
         break;
