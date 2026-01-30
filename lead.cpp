@@ -3,6 +3,8 @@
 #include "truck.cpp"
 #include <algorithm>
 #include <arpa/inet.h>
+#include <chrono>
+#include <cmath>
 #include <cstring>
 #include <fcntl.h>
 #include <iostream>
@@ -12,8 +14,6 @@
 #include <termios.h>
 #include <unistd.h>
 #include <vector>
-#include <cmath>
-#include <chrono>
 
 using namespace std;
 
@@ -30,7 +30,7 @@ public:
   vector<TruckInfo> platoon;
   uint32_t next_truck_id = 1;
   Truck truck = Truck();
-  
+
 private:
   int godotSocket = -1;
   bool godotConnected = false;
@@ -41,9 +41,10 @@ public:
       cerr << "Not connected to Godot." << endl;
       return;
     }
-    string cmd = "STATE " + to_string(truck.getX()) + " " + to_string(truck.getY()) +
-      " " + to_string(truck.getHeading()) + " " + to_string(truck.getAccel());
- 
+    string cmd = "STATE " + to_string(truck.getX()) + " " +
+                 to_string(truck.getY()) + " " + to_string(truck.getHeading()) +
+                 " " + to_string(truck.getAccel());
+
     sendToGodot(cmd);
   }
 
@@ -178,7 +179,7 @@ public:
     const double accelStep = 1;
     const float headingStep = 2;
 
-    switch (key){
+    switch (key) {
     case 'w':
       truck.setAccel(truck.getAccel() + accelStep);
       break;
@@ -270,8 +271,7 @@ private:
     memset(&servaddr, 0, sizeof(servaddr));
     servaddr.sin6_family = AF_INET6;
     servaddr.sin6_port = htons(truck.tcp_port);
-    if (inet_pton(AF_INET6, truck.ipv6addr.c_str(), &servaddr.sin6_addr) <=
-        0) {
+    if (inet_pton(AF_INET6, truck.ipv6addr.c_str(), &servaddr.sin6_addr) <= 0) {
       cerr << "Invalid IPv6 address: " << truck.ipv6addr << endl;
       close(sockfd);
       return false;
@@ -349,7 +349,6 @@ void drivingMode(PlatoonLeader &leader) {
 
     leader.truck.simulateFrame(dt);
     leader.sendStateToGodot();
-
 
     ssize_t n = read(STDIN_FILENO, &ch, 1);
 
