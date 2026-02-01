@@ -19,7 +19,7 @@ class Truck {
 
 public:
   double brakingDistance() {
-    double min = (speed * speed) / (2 * min_accel);
+    double min = std::abs((speed * speed) / (2 * min_accel));
     if (min < absolute_min_distance) {
       return absolute_min_distance;
     }
