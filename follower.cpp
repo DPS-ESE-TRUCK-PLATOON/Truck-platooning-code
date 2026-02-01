@@ -122,34 +122,30 @@ void process_front_messages() {
       auto max_distance = min_distance + 10;
 
       if (distanceToFront < min_distance) {
-	truck.setAccel(-999);
+        truck.setAccel(-999);
       } else if (distanceToFront > max_distance) {
-	truck.setAccel(999);
+        truck.setAccel(999);
       } else {
-	truck.setAccel(speed_diff *0.8f); // proportional control
+        truck.setAccel(speed_diff * 0.8f); // proportional control
       }
 
       // match front truck's heading
       // if it's too far, head towards the truck
       auto angle_diff = std::abs(angleToFront - state.heading);
       if (angle_diff > 10) {
-	truck.setHeading(angleToFront);
+        truck.setHeading(angleToFront);
       } else {
-	truck.setHeading(state.heading);
+        truck.setHeading(state.heading);
       }
-      
 
-
-      // Debug
+      // Debug print
       static int count = 0;
       if (++count % 60 == 0) {
         std::cout << "Front: accel=" << state.acceleration
                   << " our=" << truck.getAccel()
                   << " Heading: " << truck.getHeading()
                   << " front heading: " << state.heading
-                  << " Angle to front: "
-		  << angleToFront
-		  << std::endl;
+                  << " Angle to front: " << angleToFront << std::endl;
       }
     }
   }
@@ -157,9 +153,7 @@ void process_front_messages() {
 
 void update_physics(float dt) {
   truck.simulateFrame(dt);
-  if (linked) {
-    truck.setAccel(truck.getAccel() + 0.001); // TESTING
-  } else
+  if (!linked)
     truck.setAccel(-9999.0f);
   sync_to_atomics();
 }
@@ -173,8 +167,6 @@ int main(int argc, char **argv) {
       port = std::stoi(argv[++i]);
     }
   }
-
-  // signal(SIGINT, signal_handler);
 
   if (!network::init(port)) {
     std::cerr << "Network init failed\n";
@@ -200,7 +192,6 @@ int main(int argc, char **argv) {
     auto now = steady_clock::now();
     if (duration<float>(now - last).count() >= dt) {
       last = now;
-
       process_lead_messages();
       process_front_messages();
       update_physics(dt);
