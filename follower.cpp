@@ -97,6 +97,11 @@ void process_lead_messages() {
   }
 }
 
+double distance(double x1, double y1, double x2, double y2) {
+  return std::hypot(x1 - x2, y1 - y2);
+}
+double angle(double y1, double y2, double hypot) { return (y1 - y2) / hypot; }
+
 void process_front_messages() {
   proto::DecodedMessage msg;
   while (network::pop_from_front(msg)) {
@@ -107,23 +112,44 @@ void process_front_messages() {
       float target_speed = state.speed;
       float speed_diff = target_speed - truck.getSpeed();
 
-      float new_accel = speed_diff * 0.5f; // Proportional control
-      if (new_accel > 2.0f)
-        new_accel = 2.0f;
-      if (new_accel < -5.0f)
-        new_accel = -5.0f;
+      auto frontX = state.x;
+      auto frontY = state.y;
+      auto x = truck.getX();
+      auto y = truck.getY();
+      auto distanceToFront = distance(x, y, frontX, frontY);
+      auto angleToFront = angle(y, frontY, distanceToFront);
+      auto min_distance = truck.brakingDistance();
+      auto max_distance = min_distance + 10;
 
-      truck.setAccel(new_accel);
+      if (distanceToFront < min_distance) {
+	truck.setAccel(-999);
+      } else if (distanceToFront > max_distance) {
+	truck.setAccel(999);
+      } else {
+	truck.setAccel(speed_diff *0.8f); // proportional control
+      }
 
-      // Match front truck's heading
-      truck.setHeading(state.heading);
+      // match front truck's heading
+      // if it's too far, head towards the truck
+      auto angle_diff = std::abs(angleToFront - state.heading);
+      if (angle_diff > 10) {
+	truck.setHeading(angleToFront);
+      } else {
+	truck.setHeading(state.heading);
+      }
+      
+
 
       // Debug
       static int count = 0;
       if (++count % 60 == 0) {
-        std::cout << "Front: speed=" << state.speed
-                  << " our=" << truck.getSpeed()
-                  << " Heading: " << truck.getHeading() << std::endl;
+        std::cout << "Front: accel=" << state.acceleration
+                  << " our=" << truck.getAccel()
+                  << " Heading: " << truck.getHeading()
+                  << " front heading: " << state.heading
+                  << " Angle to front: "
+		  << angleToFront
+		  << std::endl;
       }
     }
   }
