@@ -15,8 +15,17 @@ class Truck {
   float max_speed = 70; // (max speed 70m/s ~= 250km/h)
   float max_accel = 2;  // in m/s^2
   float min_accel = -5; // in m/s^2
+  float absolute_min_distance = 2;
 
 public:
+  double brakingDistance() {
+    double min = (speed * speed) / (2 * min_accel);
+    if (min < absolute_min_distance) {
+      return absolute_min_distance;
+    }
+    return min;
+  }
+  
   void simulateFrame(float dt) {
     speed += acceleration * dt;
     speed = std::clamp(speed, 0.0f, max_speed);

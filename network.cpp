@@ -298,7 +298,6 @@ void network::back_tx_thread(std::atomic<bool> &running,
       sendto(back_udp_sock, msg.data(), msg.size(), 0, (sockaddr *)&back_addr,
              sizeof(back_addr));
     }
-
     next += interval;
   }
 }
