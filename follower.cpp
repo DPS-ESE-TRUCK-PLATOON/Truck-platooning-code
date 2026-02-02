@@ -2,7 +2,6 @@
 #include "network.hpp"
 #include "protocol.hpp"
 #include "truck.cpp"
-#include "ebrake.cpp"
 #include <atomic>
 #include <csignal>
 #include <iostream>
@@ -89,6 +88,23 @@ void process_lead_messages() {
 double distance(double x1, double y1, double x2, double y2) {
   return std::hypot(x1 - x2, y1 - y2);
 }
+
+void emergencybraking(bool warning, truck follower,auto frontdistance) {
+	float deceleration, actspeed, front_dis;
+	front_dis= frontdistance;
+
+	while(warning){
+		actspeed=truck.getSpeed()*(1000/3600);//from km/h to m/s
+		if (truck.getSpeed() > 0) {
+			deceleration= pow(actspeed,2)/(front_dis*2);// m/s^2
+			follower.setAccel(-decelaration);
+		} else {
+			follower.setAccel(0); //stopped
+		}
+	}
+	return;
+}
+
 double angle(double y1, double y2, double hypot) { return (y1 - y2) / hypot; }
 
 void process_front_messages() {
