@@ -264,14 +264,11 @@ public:
       float deceleration, actspeed;
       double braking_distace = truck.brakingDistance();
       actspeed=truck.getSpeed()*(1000/3600);//from km/h to m/s
-      while (warning==true) {
-        sendBrake();
-        if(truck.getSpeed()>0){
-          deceleration = pow(actspeed,2)/(braking_distace*2);// m/s^2
-          truck.setAccel(-deceleration);
-        }
-
-        truck.setAccel(0);
+      
+      sendBrake();
+      if(truck.getSpeed()>0){
+        deceleration = pow(actspeed,2)/(braking_distace*2);// m/s^2
+        truck.setAccel(-deceleration);
       }
       break;
     }
