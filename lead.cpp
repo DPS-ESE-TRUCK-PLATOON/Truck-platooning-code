@@ -254,8 +254,22 @@ public:
       truck.setAccel(0.0);
       break;
     case ' ': // emergency brake to all trucks
-      sendBrake();
-      truck.setAccel(-9999.0);
+     
+      float deceleration, actspeed, front_dis;
+      front_dis = minimal_distance-5;
+      warning=true;
+      actspeed=truck.getSpeed()*(1000/3600);//from km/h to m/s
+      while (warning==true)
+      {
+        sendBrake();
+        if(truck.getSpeed()>0){
+          deceleration = pow(actspeed,2)/(front_dis*2);// m/s^2
+          truck.setAccel(-deceleration);
+        }
+
+        truck.setAccel(0);
+      }
+
       break;
     }
   }

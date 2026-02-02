@@ -61,7 +61,9 @@ void process_lead_messages() {
 
     case proto::MessageType::BRAKE:
       std::cout << "BRAKE!\n";
-      truck.setAccel(-9999.0f);
+     // truck.setAccel(-9999.0f);
+     emergencybraking(true,truck,distanceToFront);
+
       break;
 
     case proto::MessageType::RELEASE:
@@ -112,6 +114,7 @@ void process_front_messages() {
         //truck.setAccel(-999);
         //emergency braking
         emergencybraking(true,truck,distanceToFront);
+
 
       } else if (distanceToFront > max_distance) {
         truck.setAccel(999);
