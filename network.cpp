@@ -30,9 +30,10 @@ sockaddr_in6 back_addr;
 bool back_configured = false;
 
 // Queues
-std::mutex lead_out_mut, lead_in_mut, front_in_mut;
+std::mutex lead_out_mut, lead_in_mut, front_in_mut, back_state_mut;
 std::queue<std::vector<uint8_t>> lead_out_q;
 std::queue<proto::DecodedMessage> lead_in_q, front_in_q;
+std::queue<proto::StatePayload> back_state_q;
 
 // State sequence counter
 std::atomic<uint32_t> state_seq{0};
@@ -55,6 +56,18 @@ bool network::pop_from_front(proto::DecodedMessage &msg) {
     return false;
   msg = std::move(front_in_q.front());
   front_in_q.pop();
+  return true;
+}
+void network::queue_back_state(const proto::StatePayload &state) {
+  std::lock_guard<std::mutex> lock(back_state_mut);
+  back_state_q.push(state);
+}
+bool network::pop_back_state(proto::StatePayload &state) {
+  std::lock_guard<std::mutex> lock(back_state_mut);
+  if (back_state_q.empty())
+    return false;
+  state = std::move(back_state_q.front());
+  back_state_q.pop();
   return true;
 }
 bool network::init(int tcp_port) {
@@ -264,15 +277,12 @@ void network::front_rx_thread(std::atomic<bool> &running) {
   }
 }
 void network::back_tx_thread(std::atomic<bool> &running,
-                             std::atomic<uint32_t> &truck_id,
-                             std::atomic<float> &heading,
-                             std::atomic<float> &speed,
-                             std::atomic<float> &accel, std::atomic<double> &x,
-                             std::atomic<double> &y) {
+                             std::atomic<uint32_t> &truck_id) {
 
   using namespace std::chrono;
   auto next = steady_clock::now();
   const auto interval = milliseconds(16); // ~60 Hz
+  proto::StatePayload state;
 
   while (running) {
     auto now = steady_clock::now();
@@ -281,22 +291,19 @@ void network::back_tx_thread(std::atomic<bool> &running,
       continue;
     }
 
-    if (back_configured) {
-      proto::StatePayload state;
+    // Pop state from queue
+    if (pop_back_state(state)) {
       state.truck_id = truck_id.load();
       state.sequence_num = state_seq.fetch_add(1);
       state.timestamp_ns =
           duration_cast<nanoseconds>(system_clock::now().time_since_epoch())
               .count();
-      state.heading = heading.load();
-      state.speed = speed.load();
-      state.acceleration = accel.load();
-      state.x = x.load();
-      state.y = y.load();
 
-      auto msg = proto::Encoder::state(state);
-      sendto(back_udp_sock, msg.data(), msg.size(), 0, (sockaddr *)&back_addr,
-             sizeof(back_addr));
+      if (back_configured) {
+        auto msg = proto::Encoder::state(state);
+        sendto(back_udp_sock, msg.data(), msg.size(), 0, (sockaddr *)&back_addr,
+               sizeof(back_addr));
+      }
     }
     next += interval;
   }

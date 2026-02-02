@@ -17,6 +17,9 @@ bool pop_from_lead(proto::DecodedMessage &msg);
 
 bool pop_from_front(proto::DecodedMessage &msg);
 
+void queue_back_state(const proto::StatePayload &state);
+bool pop_back_state(proto::StatePayload &state);
+
 // Initialize sockets
 bool init(int tcp_port);
 
@@ -36,10 +39,8 @@ void lead_thread(std::atomic<bool> &running);
 void front_rx_thread(std::atomic<bool> &running);
 
 // Thread 3: Send STATE to back truck (UDP)
-void back_tx_thread(std::atomic<bool> &running, std::atomic<uint32_t> &truck_id,
-                    std::atomic<float> &heading, std::atomic<float> &speed,
-                    std::atomic<float> &accel, std::atomic<double> &x,
-                    std::atomic<double> &y);
+void back_tx_thread(std::atomic<bool> &running,
+                    std::atomic<uint32_t> &truck_id);
 
 void cleanup();
 

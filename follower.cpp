@@ -13,25 +13,9 @@ std::atomic<bool> linked{false};
 // Truck instance
 Truck truck;
 
-// Atomic copies for network thread
-std::atomic<float> heading{0.0f};
-std::atomic<float> speed{0.0f};
-std::atomic<float> accel{0.0f};
-std::atomic<double> pos_x{0.0};
-std::atomic<double> pos_y{0.0};
-
 std::atomic<bool> running{true};
 
 void signal_handler(int) { running = false; }
-
-void sync_to_atomics() {
-  // Copy truck state to atomics for network thread
-  heading = truck.getHeading();
-  speed = truck.getSpeed();
-  accel = truck.getAccel();
-  pos_x = truck.getX();
-  pos_y = truck.getY();
-}
 
 void process_lead_messages() {
   proto::DecodedMessage msg;
@@ -155,7 +139,15 @@ void update_physics(float dt) {
   truck.simulateFrame(dt);
   if (!linked)
     truck.setAccel(-9999.0f);
-  sync_to_atomics();
+  
+  // Queue truck state for network thread
+  proto::StatePayload state;
+  state.heading = truck.getHeading();
+  state.speed = truck.getSpeed();
+  state.acceleration = truck.getAccel();
+  state.x = truck.getX();
+  state.y = truck.getY();
+  network::queue_back_state(state);
 }
 
 int main(int argc, char **argv) {
@@ -176,9 +168,7 @@ int main(int argc, char **argv) {
   // Start threads
   std::thread t1(network::lead_thread, std::ref(running));
   std::thread t2(network::front_rx_thread, std::ref(running));
-  std::thread t3(network::back_tx_thread, std::ref(running), std::ref(truck_id),
-                 std::ref(heading), std::ref(speed), std::ref(accel),
-                 std::ref(pos_x), std::ref(pos_y));
+  std::thread t3(network::back_tx_thread, std::ref(running), std::ref(truck_id));
 
   std::cout << "Follower truck ready on port " << port << "\n";
   std::cout << "Waiting for lead truck...\n";
