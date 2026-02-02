@@ -1,3 +1,4 @@
+#include "encoder.hpp"
 #include "network.cpp"
 #include "network.hpp"
 #include "protocol.hpp"
@@ -78,15 +79,13 @@ void process_lead_messages() {
       // truck.setAccel(-9999.0f);
       warning = true;
       emergencybraking();
-      
+      network::queue_to_lead(proto::Encoder::brake());
       break;
 
     case proto::MessageType::RELEASE:
       std::cout << "RELEASE\n";
       // truck.setAccel(0.0f);
       warning = false;
-      emergencybraking();
-
       break;
 
     case proto::MessageType::REMOVE:
