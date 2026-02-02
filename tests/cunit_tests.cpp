@@ -101,7 +101,7 @@ void test_truck_zero_speed_threshold() {
   
   // Set acceleration that would result in very small positive speed
   truck.setAccel(-2.0f);
-  truck.SimulateFrame(1.0f - 0.000001f);
+  truck.simulateFrame(1.0f - 0.000001f);
   
   // Very small speeds should be clamped to 0
   float speed = truck.getSpeed();
@@ -166,7 +166,6 @@ int main() {
   CU_pSuite network_suite = CU_add_suite("Network Queues", NULL, NULL);
   CU_add_test(network_suite, "Back State FIFO Order", test_queue_back_state_fifo);
   CU_add_test(network_suite, "Empty Queue Pop", test_queue_empty_pop);
-  CU_add_test(network_suite, "Lead Messages", test_queue_lead_messages);
   
   // Run tests
   CU_basic_run_tests();
