@@ -80,6 +80,7 @@ void process_lead_messages() {
       warning = true;
       emergencybraking();
       network::queue_to_lead(proto::Encoder::brake());
+      network::queue_back(proto::MessageType::BRAKE);
       break;
 
     case proto::MessageType::RELEASE:
@@ -155,6 +156,11 @@ void process_front_messages() {
                   << " front heading: " << state.heading
                   << " Angle to front: " << angleToFront << std::endl;
       }
+    } else if(msg.type == proto::MessageType::BRAKE) {
+          warning = true;
+          emergencybraking();
+	  //network::queue_to_lead(proto::Encoder::brake());
+	  network::queue_back(proto::MessageType::BRAKE);
     }
   }
 }

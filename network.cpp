@@ -30,10 +30,11 @@ sockaddr_in6 back_addr;
 bool back_configured = false;
 
 // Queues
-std::mutex lead_out_mut, lead_in_mut, front_in_mut, back_state_mut;
+std::mutex lead_out_mut, lead_in_mut, front_in_mut, back_state_mut, back_mut;
 std::queue<std::vector<uint8_t>> lead_out_q;
 std::queue<proto::DecodedMessage> lead_in_q, front_in_q;
 std::queue<proto::StatePayload> back_state_q;
+std::queue<proto::MessageType> back_q;
 
 // State sequence counter
 std::atomic<uint32_t> state_seq{0};
@@ -56,6 +57,18 @@ bool network::pop_from_front(proto::DecodedMessage &msg) {
     return false;
   msg = std::move(front_in_q.front());
   front_in_q.pop();
+  return true;
+}
+void network::queue_back(const proto::MessageType &state) {
+  std::lock_guard<std::mutex> lock(back_mut);
+  back_q.push(state);
+}
+bool network::pop_back(proto::MessageType &msg) {
+  std::lock_guard<std::mutex> lock(back_mut);
+  if (back_q.empty())
+    return false;
+  msg = std::move(back_q.front());
+  back_q.pop();
   return true;
 }
 void network::queue_back_state(const proto::StatePayload &state) {
@@ -305,6 +318,17 @@ void network::back_tx_thread(std::atomic<bool> &running,
                sizeof(back_addr));
       }
     }
+
+    // Send BRAKE messages
+    proto::MessageType brake_msg;
+    while (pop_back(brake_msg)) {
+      if (back_configured && brake_msg == proto::MessageType::BRAKE) {
+        auto msg = proto::Encoder::brake();
+        sendto(back_udp_sock, msg.data(), msg.size(), 0, (sockaddr *)&back_addr,
+               sizeof(back_addr));
+      }
+    }
+
     next += interval;
   }
 }
