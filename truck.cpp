@@ -22,7 +22,7 @@ public:
     double speed_ms = (speed * 1000) / 3600;
     double min = std::abs(pow(speed_ms, 2) / (2 * min_accel));
     if (min < absolute_min_distance) {
-      return absolute_min_distance;
+      return absolute_min_distance + (speed_ms * 0.5);
     }
     return min;
   }
