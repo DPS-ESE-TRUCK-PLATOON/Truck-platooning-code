@@ -30,12 +30,13 @@ void emergencybraking(bool warning, truck follower,auto frontdistance) {
 	//propagate_warning();
 	//string warningcmd="EBRAKE";
 
-	float deceleration, actspeed;
+	float deceleration, actspeed, front_dis;
+	front_dis= frontdistance;
 
 	while(warning){
 		actspeed=truck.getSpeed()*(1000/3600);//from km/h to m/s
 		if (truck.getSpeed() > 0) {
-			deceleration= pow(actspeed,2)/(frontdistance*2);// m/s^2
+			deceleration= pow(actspeed,2)/(front_dis*2);// m/s^2
 			follower.setAccel(-decelaration);
 		} else {
 			follower.setAccel(0); //stopped
