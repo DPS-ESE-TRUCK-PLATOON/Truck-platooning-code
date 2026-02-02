@@ -30,6 +30,7 @@ public:
   vector<TruckInfo> platoon;
   uint32_t next_truck_id = 1;
   Truck truck = Truck();
+  bool warning=false;
 
 private:
   int godotSocket = -1;
@@ -239,7 +240,9 @@ public:
 
     switch (key) {
     case 'w':
+    if(!warning){
       truck.setAccel(truck.getAccel() + accelStep);
+    }
       break;
     case 's':
       truck.setAccel(truck.getAccel() - accelStep);
@@ -251,25 +254,25 @@ public:
       truck.setHeading(truck.getHeading() + headingStep);
       break;
     case 'z':
+      warning =false;
+      //todo sent realse to all
+       sendRelease();
       truck.setAccel(0.0);
       break;
     case ' ': // emergency brake to all trucks
-     
-      float deceleration, actspeed, front_dis;
-      front_dis = minimal_distance-5;
-      warning=true;
+     warning=true;
+      float deceleration, actspeed;
+      double braking_distace = truck.brakingDistance();
       actspeed=truck.getSpeed()*(1000/3600);//from km/h to m/s
-      while (warning==true)
-      {
+      while (warning==true) {
         sendBrake();
         if(truck.getSpeed()>0){
-          deceleration = pow(actspeed,2)/(front_dis*2);// m/s^2
+          deceleration = pow(actspeed,2)/(braking_distace*2);// m/s^2
           truck.setAccel(-deceleration);
         }
 
         truck.setAccel(0);
       }
-
       break;
     }
   }
