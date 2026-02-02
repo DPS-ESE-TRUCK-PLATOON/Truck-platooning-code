@@ -1,5 +1,6 @@
 #pragma once
 #include "decoder.hpp"
+#include "protocol.hpp"
 #include <arpa/inet.h>
 #include <atomic>
 #include <fcntl.h>
@@ -19,6 +20,8 @@ bool pop_from_front(proto::DecodedMessage &msg);
 
 void queue_back_state(const proto::StatePayload &state);
 bool pop_back_state(proto::StatePayload &state);
+void queue_back(const proto::MessageType &state);
+bool pop_back(proto::MessageType &msg);
 
 // Initialize sockets
 bool init(int tcp_port);

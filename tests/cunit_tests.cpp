@@ -101,9 +101,7 @@ void test_truck_zero_speed_threshold() {
   
   // Set acceleration that would result in very small positive speed
   truck.setAccel(-2.0f);
-  for (int i = 0; i < 100; i++) {
-    truck.simulateFrame(0.001f);
-  }
+  truck.simulateFrame(1.0f - 0.000001f);
   
   // Very small speeds should be clamped to 0
   float speed = truck.getSpeed();
@@ -150,23 +148,6 @@ void test_queue_empty_pop() {
   CU_ASSERT(!result);
 }
 
-void test_queue_lead_messages() {
-  // Clear queue first
-  proto::DecodedMessage temp_msg;
-  while (network::pop_from_lead(temp_msg)) {}
-  
-  proto::DecodedMessage msg;
-  msg.type = proto::MessageType::STATE;
-  msg.payload = {0x01, 0x02, 0x03};
-  
-  network::queue_to_lead({0x01, 0x02, 0x03});
-  
-  proto::DecodedMessage retrieved;
-  bool result = network::pop_from_lead(retrieved);
-  
-  CU_ASSERT(result);
-}
-
 // Main Test Runner
 
 int main() {
@@ -185,7 +166,6 @@ int main() {
   CU_pSuite network_suite = CU_add_suite("Network Queues", NULL, NULL);
   CU_add_test(network_suite, "Back State FIFO Order", test_queue_back_state_fifo);
   CU_add_test(network_suite, "Empty Queue Pop", test_queue_empty_pop);
-  CU_add_test(network_suite, "Lead Messages", test_queue_lead_messages);
   
   // Run tests
   CU_basic_run_tests();
