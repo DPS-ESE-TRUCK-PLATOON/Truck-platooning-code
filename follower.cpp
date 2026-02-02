@@ -12,10 +12,25 @@ std::atomic<bool> linked{false};
 
 // Truck instance
 Truck truck;
+bool warning;
 
 std::atomic<bool> running{true};
 
 void signal_handler(int) { running = false; }
+
+void emergencybraking() {
+  float deceleration, actspeed, front_dis;
+  front_dis = truck.brakingDistance();
+
+  actspeed = truck.getSpeed() * (1000.0 / 3600); // from km/h to m/s
+  if (truck.getSpeed() > 0) {
+    deceleration = pow(actspeed, 2) / (front_dis * 2); // m/s^2
+    truck.setAccel(-deceleration);
+  } else {
+    truck.setAccel(0); // stopped
+  }
+  return;
+}
 
 void process_lead_messages() {
   proto::DecodedMessage msg;
@@ -60,15 +75,17 @@ void process_lead_messages() {
 
     case proto::MessageType::BRAKE:
       std::cout << "BRAKE!\n";
-     // truck.setAccel(-9999.0f);
-     emergencybraking(true,truck,distanceToFront);
-
+      // truck.setAccel(-9999.0f);
+      warning = true;
+      emergencybraking();
+      
       break;
 
     case proto::MessageType::RELEASE:
       std::cout << "RELEASE\n";
-      //truck.setAccel(0.0f);
-      emergencybraking(false,truck,distanceToFront);
+      // truck.setAccel(0.0f);
+      warning = false;
+      emergencybraking();
 
       break;
 
@@ -87,22 +104,6 @@ void process_lead_messages() {
 
 double distance(double x1, double y1, double x2, double y2) {
   return std::hypot(x1 - x2, y1 - y2);
-}
-
-void emergencybraking(bool warning, truck follower,auto frontdistance) {
-	float deceleration, actspeed, front_dis;
-	front_dis= frontdistance;
-
-	while(warning){
-		actspeed=truck.getSpeed()*(1000/3600);//from km/h to m/s
-		if (truck.getSpeed() > 0) {
-			deceleration= pow(actspeed,2)/(front_dis*2);// m/s^2
-			follower.setAccel(-decelaration);
-		} else {
-			follower.setAccel(0); //stopped
-		}
-	}
-	return;
 }
 
 double angle(double y1, double y2, double hypot) { return (y1 - y2) / hypot; }
@@ -127,11 +128,10 @@ void process_front_messages() {
       auto max_distance = min_distance + 10;
 
       if (distanceToFront < min_distance) {
-        //truck.setAccel(-999);
-        //emergency braking
-        emergencybraking(true,truck,distanceToFront);
-
-
+        // truck.setAccel(-999);
+        // emergency braking
+	warning = true;
+        emergencybraking();
       } else if (distanceToFront > max_distance) {
         truck.setAccel(999);
       } else {
@@ -164,7 +164,7 @@ void update_physics(float dt) {
   truck.simulateFrame(dt);
   if (!linked)
     truck.setAccel(-9999.0f);
-  
+
   // Queue truck state for network thread
   proto::StatePayload state;
   state.heading = truck.getHeading();
@@ -193,7 +193,8 @@ int main(int argc, char **argv) {
   // Start threads
   std::thread t1(network::lead_thread, std::ref(running));
   std::thread t2(network::front_rx_thread, std::ref(running));
-  std::thread t3(network::back_tx_thread, std::ref(running), std::ref(truck_id));
+  std::thread t3(network::back_tx_thread, std::ref(running),
+                 std::ref(truck_id));
 
   std::cout << "Follower truck ready on port " << port << "\n";
   std::cout << "Waiting for lead truck...\n";
