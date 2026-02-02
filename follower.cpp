@@ -2,6 +2,7 @@
 #include "network.hpp"
 #include "protocol.hpp"
 #include "truck.cpp"
+#include "ebrake.cpp"
 #include <atomic>
 #include <csignal>
 #include <iostream>
@@ -65,7 +66,9 @@ void process_lead_messages() {
 
     case proto::MessageType::RELEASE:
       std::cout << "RELEASE\n";
-      truck.setAccel(0.0f);
+      //truck.setAccel(0.0f);
+      emergencybraking(false,truck,distanceToFront);
+
       break;
 
     case proto::MessageType::REMOVE:
@@ -106,7 +109,10 @@ void process_front_messages() {
       auto max_distance = min_distance + 10;
 
       if (distanceToFront < min_distance) {
-        truck.setAccel(-999);
+        //truck.setAccel(-999);
+        //emergency braking
+        emergencybraking(true,truck,distanceToFront);
+
       } else if (distanceToFront > max_distance) {
         truck.setAccel(999);
       } else {
