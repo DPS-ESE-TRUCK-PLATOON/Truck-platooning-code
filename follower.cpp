@@ -13,25 +13,9 @@ std::atomic<bool> linked{false};
 // Truck instance
 Truck truck;
 
-// Atomic copies for network thread
-std::atomic<float> heading{0.0f};
-std::atomic<float> speed{0.0f};
-std::atomic<float> accel{0.0f};
-std::atomic<double> pos_x{0.0};
-std::atomic<double> pos_y{0.0};
-
 std::atomic<bool> running{true};
 
 void signal_handler(int) { running = false; }
-
-void sync_to_atomics() {
-  // Copy truck state to atomics for network thread
-  heading = truck.getHeading();
-  speed = truck.getSpeed();
-  accel = truck.getAccel();
-  pos_x = truck.getX();
-  pos_y = truck.getY();
-}
 
 void process_lead_messages() {
   proto::DecodedMessage msg;
@@ -122,34 +106,30 @@ void process_front_messages() {
       auto max_distance = min_distance + 10;
 
       if (distanceToFront < min_distance) {
-	truck.setAccel(-999);
+        truck.setAccel(-999);
       } else if (distanceToFront > max_distance) {
-	truck.setAccel(999);
+        truck.setAccel(999);
       } else {
-	truck.setAccel(speed_diff *0.8f); // proportional control
+        truck.setAccel(speed_diff * 0.8f); // proportional control
       }
 
       // match front truck's heading
       // if it's too far, head towards the truck
       auto angle_diff = std::abs(angleToFront - state.heading);
       if (angle_diff > 10) {
-	truck.setHeading(angleToFront);
+        truck.setHeading(angleToFront);
       } else {
-	truck.setHeading(state.heading);
+        truck.setHeading(state.heading);
       }
-      
 
-
-      // Debug
+      // Debug print
       static int count = 0;
       if (++count % 60 == 0) {
         std::cout << "Front: accel=" << state.acceleration
                   << " our=" << truck.getAccel()
                   << " Heading: " << truck.getHeading()
                   << " front heading: " << state.heading
-                  << " Angle to front: "
-		  << angleToFront
-		  << std::endl;
+                  << " Angle to front: " << angleToFront << std::endl;
       }
     }
   }
@@ -157,11 +137,17 @@ void process_front_messages() {
 
 void update_physics(float dt) {
   truck.simulateFrame(dt);
-  if (linked) {
-    truck.setAccel(truck.getAccel() + 0.001); // TESTING
-  } else
+  if (!linked)
     truck.setAccel(-9999.0f);
-  sync_to_atomics();
+  
+  // Queue truck state for network thread
+  proto::StatePayload state;
+  state.heading = truck.getHeading();
+  state.speed = truck.getSpeed();
+  state.acceleration = truck.getAccel();
+  state.x = truck.getX();
+  state.y = truck.getY();
+  network::queue_back_state(state);
 }
 
 int main(int argc, char **argv) {
@@ -174,8 +160,6 @@ int main(int argc, char **argv) {
     }
   }
 
-  // signal(SIGINT, signal_handler);
-
   if (!network::init(port)) {
     std::cerr << "Network init failed\n";
     return 1;
@@ -184,9 +168,7 @@ int main(int argc, char **argv) {
   // Start threads
   std::thread t1(network::lead_thread, std::ref(running));
   std::thread t2(network::front_rx_thread, std::ref(running));
-  std::thread t3(network::back_tx_thread, std::ref(running), std::ref(truck_id),
-                 std::ref(heading), std::ref(speed), std::ref(accel),
-                 std::ref(pos_x), std::ref(pos_y));
+  std::thread t3(network::back_tx_thread, std::ref(running), std::ref(truck_id));
 
   std::cout << "Follower truck ready on port " << port << "\n";
   std::cout << "Waiting for lead truck...\n";
@@ -200,7 +182,6 @@ int main(int argc, char **argv) {
     auto now = steady_clock::now();
     if (duration<float>(now - last).count() >= dt) {
       last = now;
-
       process_lead_messages();
       process_front_messages();
       update_physics(dt);
