@@ -1,4 +1,4 @@
-# ip route show | grep -i default | awk '{ print $3}'
+# W
 # 172.23.176.1
 
 extends Node2D
