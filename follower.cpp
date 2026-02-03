@@ -1,3 +1,5 @@
+#include "comm_loss.hpp"
+#include "comm_loss.cpp"
 #include "encoder.hpp"
 #include "network.cpp"
 #include "network.hpp"
@@ -7,7 +9,7 @@
 #include <csignal>
 #include <iostream>
 
-// communication_loss comm_loss;
+communication_loss comm_loss;
 
 // Truck state (atomic for thread safety)
 std::atomic<uint32_t> truck_id{0};
@@ -38,9 +40,6 @@ void emergencybraking() {
 void process_lead_messages() {
   proto::DecodedMessage msg;
   while (network::pop_from_lead(msg)) {
-
-    // comm_loss.connection_recovery(); // amin
-
     switch (msg.type) {
     case proto::MessageType::INFO: {
       const auto &info = proto::Decoder::as_info(msg);
@@ -117,7 +116,7 @@ void process_front_messages() {
   proto::DecodedMessage msg;
   while (network::pop_from_front(msg)) {
 
-    // comm_loss.connection_recovery(); // amin
+    comm_loss.connection_recovery();
 
     if (msg.type == proto::MessageType::STATE) {
       const auto &state = proto::Decoder::as_state(msg);
@@ -225,13 +224,11 @@ int main(int argc, char **argv) {
       update_physics(dt);
 
       // Communication of a truck is permanently lost (added by amin)
-      // if (linked && comm_loss.permanentConnection_loss()) {
-      //   std::cout << "COMMUNICATION IS PERMANENTLY LOST, BRAKING AND STEERING
-      //   "
-      //                "TO SHOULDER TO PARK.\n";
-      //   truck.setAccel(-9999.0f);
-      //   linked = false;
-      // }
+      if (linked && comm_loss.permanentConnection_loss()) {
+        std::cout << "COMMUNICATION IS PERMANENTLY LOST, BRAKING AND STEERING TO SHOULDER TO PARK.\n";
+	emergencybraking();
+        linked = false;
+      }
 
       // Status print
       static int tick = 0;
