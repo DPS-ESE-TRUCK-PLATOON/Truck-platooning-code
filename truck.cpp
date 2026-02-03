@@ -13,7 +13,7 @@ class Truck {
   double x = 0.0;
   double y = 0.0;
   float max_speed = 70; // (max speed 70m/s ~= 250km/h)
-  float max_accel = 2;  // in m/s^2
+  float max_accel = 4;  // in m/s^2
   float min_accel = -5; // in m/s^2
   float absolute_min_distance = 2;
 
