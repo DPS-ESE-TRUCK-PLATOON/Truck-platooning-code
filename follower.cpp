@@ -123,8 +123,8 @@ void process_front_messages() {
       const auto &state = proto::Decoder::as_state(msg);
 
       // Match front truck's speed
-      float target_speed = state.speed;
-      float speed_diff = target_speed - truck.getSpeed();
+      float target_accel = state.acceleration;
+      float accel_diff = target_accel - truck.getAccel();
 
       auto frontX = state.x;
       auto frontY = state.y;
@@ -141,9 +141,9 @@ void process_front_messages() {
         warning = true;
         emergencybraking();
       } else if (distanceToFront > max_distance) {
-        truck.setAccel(999);
+        truck.setAccel(state.acceleration + 0.1);
       } else {
-        truck.setAccel(speed_diff * 0.8f); // proportional control
+        truck.setAccel(accel_diff * 0.8f); // proportional control
       }
 
       // match front truck's heading
@@ -236,9 +236,8 @@ int main(int argc, char **argv) {
       // Status print
       static int tick = 0;
       if (++tick % 120 == 0) {
-        std::cout << "ID=" << truck_id.load() << " linked="
-                  << linked.load()
-		  << " accel=" << truck.getAccel()
+        std::cout << "ID=" << truck_id.load() << " linked=" << linked.load()
+                  << " accel=" << truck.getAccel()
                   << " speed=" << truck.getSpeed() << " pos=(" << truck.getX()
                   << "," << truck.getY() << ")\n";
       }
