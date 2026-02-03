@@ -236,7 +236,9 @@ int main(int argc, char **argv) {
       // Status print
       static int tick = 0;
       if (++tick % 120 == 0) {
-        std::cout << "ID=" << truck_id.load() << " linked=" << linked.load()
+        std::cout << "ID=" << truck_id.load() << " linked="
+                  << linked.load()
+		  << " accel=" << truck.getAccel()
                   << " speed=" << truck.getSpeed() << " pos=(" << truck.getX()
                   << "," << truck.getY() << ")\n";
       }
