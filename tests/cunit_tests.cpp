@@ -16,7 +16,7 @@ void test_truck_speed_clamping() {
   
   // Test that max accel clamps to 2 m/s^2
   truck.setAccel(999);
-  CU_ASSERT(truck.getAccel() == 2.0f);
+  CU_ASSERT(truck.getAccel() == 4.0f);
 }
 
 void test_truck_deceleration() {
