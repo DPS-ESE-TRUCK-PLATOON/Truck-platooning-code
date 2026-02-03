@@ -3,13 +3,11 @@
 #include "network.hpp"
 #include "protocol.hpp"
 #include "truck.cpp"
-#include "comm_loss.hpp"
-#include "comm_loss.cpp"
 #include <atomic>
 #include <csignal>
 #include <iostream>
 
-communication_loss comm_loss; //amin
+//communication_loss comm_loss;
 
 // Truck state (atomic for thread safety)
 std::atomic<uint32_t> truck_id{0};
@@ -41,7 +39,7 @@ void process_lead_messages() {
   proto::DecodedMessage msg;
   while (network::pop_from_lead(msg)) {
 
-    comm_loss.connection_recovery(); //amin
+    //comm_loss.connection_recovery(); // amin
 
     switch (msg.type) {
     case proto::MessageType::INFO: {
@@ -119,7 +117,7 @@ void process_front_messages() {
   proto::DecodedMessage msg;
   while (network::pop_from_front(msg)) {
 
-    comm_loss.connection_recovery(); //amin
+    //comm_loss.connection_recovery(); // amin
 
     if (msg.type == proto::MessageType::STATE) {
       const auto &state = proto::Decoder::as_state(msg);
@@ -140,7 +138,7 @@ void process_front_messages() {
       if (distanceToFront < min_distance) {
         // truck.setAccel(-999);
         // emergency braking
-	warning = true;
+        warning = true;
         emergencybraking();
       } else if (distanceToFront > max_distance) {
         truck.setAccel(999);
@@ -166,11 +164,11 @@ void process_front_messages() {
                   << " front heading: " << state.heading
                   << " Angle to front: " << angleToFront << std::endl;
       }
-    } else if(msg.type == proto::MessageType::BRAKE) {
-          warning = true;
-          emergencybraking();
-	  //network::queue_to_lead(proto::Encoder::brake());
-	  network::queue_back(proto::MessageType::BRAKE);
+    } else if (msg.type == proto::MessageType::BRAKE) {
+      warning = true;
+      emergencybraking();
+      // network::queue_to_lead(proto::Encoder::brake());
+      network::queue_back(proto::MessageType::BRAKE);
     }
   }
 }
@@ -226,14 +224,14 @@ int main(int argc, char **argv) {
       process_lead_messages();
       process_front_messages();
       update_physics(dt);
-      
-      //Communication of a truck is permanently lost (added by amin)
-if (linked && comm_loss.permanentConnection_loss()) { 
-    std::cout << "COMMUNICATION IS PERMANENTLY LOST, BRAKING AND STEERING TO SHOULDER TO PARK.\n";
-    truck.setAccel(-9999.0f);
-    linked = false;
-}
 
+      // Communication of a truck is permanently lost (added by amin)
+      // if (linked && comm_loss.permanentConnection_loss()) {
+      //   std::cout << "COMMUNICATION IS PERMANENTLY LOST, BRAKING AND STEERING "
+      //                "TO SHOULDER TO PARK.\n";
+      //   truck.setAccel(-9999.0f);
+      //   linked = false;
+      // }
 
       // Status print
       static int tick = 0;
@@ -245,7 +243,6 @@ if (linked && comm_loss.permanentConnection_loss()) {
     }
 
     std::this_thread::sleep_for(milliseconds(1));
-
   }
 
   // Cleanup
