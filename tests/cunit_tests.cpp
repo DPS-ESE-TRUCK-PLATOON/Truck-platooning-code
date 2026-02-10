@@ -52,7 +52,7 @@ void test_truck_heading_conversion() {
   // Negative angles should wrap correctly
   truck.setHeading(-45.0f);
   heading = truck.getHeading();
-  CU_ASSERT(heading > 314.0f && heading < 316.0f); // Should be ~315�
+  CU_ASSERT(heading > 314.0f && heading < 316.0f); // Should be ~315
 }
 
 void test_truck_position_update() {
